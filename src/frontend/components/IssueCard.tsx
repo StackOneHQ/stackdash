@@ -11,6 +11,7 @@ interface IssueCardProps {
 export function IssueCard({ issue, onTodoGenerated, onDeleted }: IssueCardProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleDelete = async () => {
     if (isDeleting) return;
@@ -83,14 +84,21 @@ export function IssueCard({ issue, onTodoGenerated, onDeleted }: IssueCardProps)
         </div>
       </div>
 
-      {issue.summary ? (
-        <p className="issue-summary">{issue.summary}</p>
-      ) : (
-        <p className="issue-summary issue-summary-placeholder">
-          {issue.originalIssue.description.slice(0, 100)}
-          {issue.originalIssue.description.length > 100 ? '...' : ''}
-        </p>
-      )}
+      <div
+        className={`issue-summary-container ${isExpanded ? 'expanded' : ''}`}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        {issue.summary ? (
+          <p className={`issue-summary ${isExpanded ? 'expanded' : ''}`}>{issue.summary}</p>
+        ) : (
+          <p className={`issue-summary issue-summary-placeholder ${isExpanded ? 'expanded' : ''}`}>
+            {issue.originalIssue.description}
+          </p>
+        )}
+        {!isExpanded && (
+          <span className="issue-summary-expand">Click to expand</span>
+        )}
+      </div>
 
       <div className="issue-meta">
         <span className="issue-customer">

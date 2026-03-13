@@ -438,15 +438,39 @@ body {
 }
 
 /* Issue summary */
+.issue-summary-container {
+  margin-bottom: var(--space-md);
+  cursor: pointer;
+  position: relative;
+}
+
+.issue-summary-container:hover .issue-summary-expand {
+  opacity: 1;
+}
+
 .issue-summary {
   font-size: 0.8125rem;
   color: var(--text-secondary);
   line-height: 1.6;
-  margin-bottom: var(--space-md);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.issue-summary.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.issue-summary-expand {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+  display: block;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
 }
 
 /* Issue meta */
