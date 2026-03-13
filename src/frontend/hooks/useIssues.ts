@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { TriagedIssue, DashboardStats, IssuesResponse } from '../types';
+import type { TriagedIssue, DashboardStats, IssuesResponse, Assignee } from '../types';
 
 const POLL_INTERVAL = 5000; // 5 seconds
 
 interface UseIssuesReturn {
   issues: TriagedIssue[];
   stats: DashboardStats;
+  assignees: Assignee[];
   isLoading: boolean;
   error: string | null;
   lastUpdated: string | null;
@@ -26,22 +27,32 @@ const defaultStats: DashboardStats = {
 export function useIssues(): UseIssuesReturn {
   const [issues, setIssues] = useState<TriagedIssue[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   const fetchIssues = useCallback(async () => {
     try {
-      const response = await fetch('/api/issues');
+      const [issuesResponse, assigneesResponse] = await Promise.all([
+        fetch('/api/issues'),
+        fetch('/api/issues/assignees'),
+      ]);
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch issues: ${response.status}`);
+      if (!issuesResponse.ok) {
+        throw new Error(`Failed to fetch issues: ${issuesResponse.status}`);
       }
 
-      const data: IssuesResponse = await response.json();
-      setIssues(data.issues);
-      setStats(data.stats);
-      setLastUpdated(data.lastUpdated);
+      const issuesData: IssuesResponse = await issuesResponse.json();
+      setIssues(issuesData.issues);
+      setStats(issuesData.stats);
+      setLastUpdated(issuesData.lastUpdated);
+
+      if (assigneesResponse.ok) {
+        const assigneesData = await assigneesResponse.json();
+        setAssignees(assigneesData.assignees || []);
+      }
+
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -64,6 +75,7 @@ export function useIssues(): UseIssuesReturn {
   return {
     issues,
     stats: stats || defaultStats,
+    assignees,
     isLoading,
     error,
     lastUpdated,

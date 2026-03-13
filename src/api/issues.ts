@@ -30,6 +30,12 @@ issues.get('/:id', (c) => {
   return c.json(issue);
 });
 
+// GET /api/issues/assignees - Get all unique assignees
+issues.get('/assignees', (c) => {
+  const assignees = issueStore.getAssignees();
+  return c.json({ assignees });
+});
+
 // GET /api/issues/priority/:priority - Fetch issues by priority
 issues.get('/priority/:priority', (c) => {
   const priority = c.req.param('priority') as 'high' | 'medium' | 'low';

@@ -8,6 +8,8 @@ interface UseTodosReturn {
   addTodo: (todo: Todo) => void;
   toggleTodo: (id: string) => void;
   deleteTodo: (id: string) => void;
+  updateTodo: (id: string, updates: Partial<Todo>) => void;
+  createManualTodo: (title: string, description?: string, steps?: string[]) => void;
   clearCompleted: () => void;
   pendingCount: number;
   completedCount: number;
@@ -67,6 +69,27 @@ export function useTodos(): UseTodosReturn {
     setTodos(prev => prev.filter(todo => todo.id !== id));
   }, []);
 
+  const updateTodo = useCallback((id: string, updates: Partial<Todo>) => {
+    setTodos(prev =>
+      prev.map(todo =>
+        todo.id === id ? { ...todo, ...updates } : todo
+      )
+    );
+  }, []);
+
+  const createManualTodo = useCallback((title: string, description?: string, steps?: string[]) => {
+    const newTodo: Todo = {
+      id: `manual-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      issueId: 'manual',
+      title,
+      description: description || '',
+      steps: steps || [],
+      createdAt: new Date().toISOString(),
+      completed: false,
+    };
+    setTodos(prev => [newTodo, ...prev]);
+  }, []);
+
   const clearCompleted = useCallback(() => {
     setTodos(prev => prev.filter(todo => !todo.completed));
   }, []);
@@ -79,6 +102,8 @@ export function useTodos(): UseTodosReturn {
     addTodo,
     toggleTodo,
     deleteTodo,
+    updateTodo,
+    createManualTodo,
     clearCompleted,
     pendingCount,
     completedCount,

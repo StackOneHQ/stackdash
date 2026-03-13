@@ -4,6 +4,13 @@ export type Priority = 'high' | 'medium' | 'low';
 // Customer tier levels
 export type CustomerTier = 'enterprise' | 'business' | 'starter' | 'free';
 
+// Assignee information
+export interface Assignee {
+  id: string;
+  name?: string;
+  email?: string;
+}
+
 // Base Pylon issue from webhook + MCP enrichment
 export interface PylonIssue {
   id: string;
@@ -20,6 +27,7 @@ export interface PylonIssue {
   pylonLink?: string;
   issueNumber?: number;
   state?: string;
+  assignee?: Assignee;
   metadata?: Record<string, unknown>;
 }
 
@@ -37,16 +45,18 @@ export interface TriagedIssue {
   errorMessage?: string;
 }
 
-// To-do item generated from an issue
+// To-do item generated from an issue or created manually
+// For manually created todos, issueId is set to 'manual'
 export interface Todo {
   id: string;
-  issueId: string;
+  issueId: string; // Set to 'manual' for manually created todos
   title: string;
   description: string;
   steps: string[];
   createdAt: string;
   completedAt?: string;
   completed: boolean;
+  assignee?: Assignee;
 }
 
 // Dashboard statistics

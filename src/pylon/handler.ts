@@ -36,8 +36,12 @@ function convertMCPIssueToInternal(mcpIssue: PylonMCPIssue): PylonIssue {
     pylonLink: buildPylonLink(mcpIssue.id, mcpIssue.number),
     issueNumber: mcpIssue.number,
     state: mcpIssue.state,
+    assignee: mcpIssue.assignee ? {
+      id: mcpIssue.assignee.id,
+      name: mcpIssue.assignee.name,
+      email: mcpIssue.assignee.email,
+    } : undefined,
     metadata: {
-      assignee: mcpIssue.assignee,
       team: mcpIssue.team,
       customFields: mcpIssue.custom_fields,
       externalIssues: mcpIssue.external_issues,

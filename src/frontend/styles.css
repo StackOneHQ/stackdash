@@ -47,12 +47,49 @@ body {
   font-weight: 600;
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .header-status {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: var(--text-secondary);
   font-size: 0.875rem;
+}
+
+.filter-banner {
+  background: rgba(59, 130, 246, 0.15);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 0.5rem 2rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.filter-banner strong {
+  color: var(--accent);
+}
+
+.filter-clear {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-clear:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .status-dot {
@@ -213,6 +250,45 @@ body {
   text-transform: capitalize;
 }
 
+.assignee-badge {
+  padding: 0.125rem 0.375rem;
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--accent);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Assignee Filter */
+.assignee-filter {
+  display: flex;
+  align-items: center;
+}
+
+.assignee-select {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.assignee-select:hover {
+  border-color: var(--accent);
+}
+
+.assignee-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
 .issue-actions {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
@@ -347,6 +423,177 @@ body {
 
 .todo-delete:hover {
   color: var(--high-priority);
+}
+
+/* Todo Edit Button */
+.todo-edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.todo-card:hover .todo-edit-btn {
+  opacity: 1;
+}
+
+.todo-edit-btn:hover {
+  color: var(--accent);
+}
+
+/* Todo Add Form & Edit Mode */
+.todo-add-form,
+.todo-edit-mode {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+}
+
+.todo-edit-field {
+  margin-bottom: 0.75rem;
+}
+
+.todo-edit-field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+/* Todo Input */
+.todo-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.todo-input:focus {
+  border-color: var(--accent);
+}
+
+.todo-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Todo Textarea */
+.todo-textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.todo-textarea:focus {
+  border-color: var(--accent);
+}
+
+.todo-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* Todo Steps Editing */
+.todo-steps-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.todo-step-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.todo-step-input {
+  flex: 1;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.8125rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.todo-step-input:focus {
+  border-color: var(--accent);
+}
+
+.todo-step-input::placeholder {
+  color: var(--text-muted);
+}
+
+.todo-step-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.todo-step-remove:hover {
+  color: var(--high-priority);
+}
+
+.todo-add-step-btn {
+  background: none;
+  border: 1px dashed var(--border-color);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.todo-add-step-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Todo Edit Actions */
+.todo-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 /* Stats Column */

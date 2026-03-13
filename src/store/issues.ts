@@ -4,6 +4,7 @@ import type {
   RetryQueueItem,
   DashboardStats,
   Priority,
+  Assignee,
 } from '../types';
 
 const MAX_RETRY_COUNT = 3;
@@ -151,6 +152,38 @@ class IssueStore {
   getIssuesByPriority(priority: Priority): TriagedIssue[] {
     return this.getAllIssues().filter(
       i => i.status === 'triaged' && i.priority === priority
+    );
+  }
+
+  // Get all unique assignees from issues
+  getAssignees(): Assignee[] {
+    const assigneeMap = new Map<string, Assignee>();
+
+    for (const issue of this.issues.values()) {
+      const assignee = issue.originalIssue.assignee;
+      if (assignee && assignee.id) {
+        assigneeMap.set(assignee.id, assignee);
+      }
+    }
+
+    return Array.from(assigneeMap.values()).sort((a, b) => {
+      const nameA = a.name || a.email || '';
+      const nameB = b.name || b.email || '';
+      return nameA.localeCompare(nameB);
+    });
+  }
+
+  // Get issues filtered by assignee
+  getIssuesByAssignee(assigneeId: string): TriagedIssue[] {
+    return this.getAllIssues().filter(
+      i => i.originalIssue.assignee?.id === assigneeId
+    );
+  }
+
+  // Get unassigned issues
+  getUnassignedIssues(): TriagedIssue[] {
+    return this.getAllIssues().filter(
+      i => !i.originalIssue.assignee
     );
   }
 

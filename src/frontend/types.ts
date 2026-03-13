@@ -3,6 +3,12 @@
 export type Priority = 'high' | 'medium' | 'low';
 export type CustomerTier = 'enterprise' | 'business' | 'starter' | 'free';
 
+export interface Assignee {
+  id: string;
+  name?: string;
+  email?: string;
+}
+
 export interface PylonIssue {
   id: string;
   title: string;
@@ -18,6 +24,7 @@ export interface PylonIssue {
   pylonLink?: string;
   issueNumber?: number;
   state?: string;
+  assignee?: Assignee;
 }
 
 export interface TriagedIssue {
@@ -42,6 +49,7 @@ export interface Todo {
   createdAt: string;
   completedAt?: string;
   completed: boolean;
+  assignee?: Assignee;
 }
 
 export interface DashboardStats {

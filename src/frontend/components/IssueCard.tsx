@@ -111,6 +111,11 @@ export function IssueCard({ issue, onTodoGenerated, onDeleted }: IssueCardProps)
            'Unknown'}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {issue.originalIssue.assignee && (
+            <span className="assignee-badge" title={issue.originalIssue.assignee.email || ''}>
+              {issue.originalIssue.assignee.name || issue.originalIssue.assignee.email || 'Assigned'}
+            </span>
+          )}
           {issue.originalIssue.customerTier && (
             <span className="customer-tier">{issue.originalIssue.customerTier}</span>
           )}

@@ -297,6 +297,7 @@ ${triageResult.investigationOutline.map((item, i) => `${i + 1}. ${item}`).join('
       steps: parsed.steps,
       createdAt: new Date().toISOString(),
       completed: false,
+      assignee: issue.assignee,
     };
   } catch (error) {
     console.error('Todo generation failed:', error);
@@ -310,6 +311,7 @@ ${triageResult.investigationOutline.map((item, i) => `${i + 1}. ${item}`).join('
       steps: triageResult.investigationOutline,
       createdAt: new Date().toISOString(),
       completed: false,
+      assignee: issue.assignee,
     };
   }
 }

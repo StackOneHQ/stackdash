@@ -13,6 +13,8 @@ interface DashboardProps {
   onTodoGenerated: (todo: Todo) => void;
   onTodoToggle: (id: string) => void;
   onTodoDelete: (id: string) => void;
+  onTodoUpdate: (id: string, updates: Partial<Todo>) => void;
+  onTodoCreateManual: (title: string, description?: string, steps?: string[]) => void;
   onClearCompleted: () => void;
   onIssueDeleted: (issueId: string) => void;
   pendingTodoCount: number;
@@ -28,6 +30,8 @@ export function Dashboard({
   onTodoGenerated,
   onTodoToggle,
   onTodoDelete,
+  onTodoUpdate,
+  onTodoCreateManual,
   onClearCompleted,
   onIssueDeleted,
   pendingTodoCount,
@@ -68,17 +72,19 @@ export function Dashboard({
   return (
     <div className="dashboard">
       <IssueColumn
-        title="Triaged Issues"
+        title="Issues"
         issues={sortedIssues}
         onTodoGenerated={onTodoGenerated}
         onIssueDeleted={onIssueDeleted}
-        emptyMessage="No issues received yet. Send a webhook to /api/pylon/webhook to get started."
+        emptyMessage="No issues to show. Select a different assignee or wait for new issues."
       />
 
       <TodoColumn
         todos={todos}
         onToggle={onTodoToggle}
         onDelete={onTodoDelete}
+        onUpdate={onTodoUpdate}
+        onCreateManual={onTodoCreateManual}
         onClearCompleted={onClearCompleted}
         pendingCount={pendingTodoCount}
         completedCount={completedTodoCount}
