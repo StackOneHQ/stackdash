@@ -32,11 +32,19 @@ export const MCP_TOOLS = {
 
 let requestId = 0;
 
+// Global env storage for Workers compatibility
+let globalEnv: Record<string, string | undefined> = {};
+
+export function setMCPEnv(env: Record<string, string | undefined>) {
+  globalEnv = env;
+}
+
 export class StackOneMCPClient {
-  private baseUrl: string;
-  private apiKey: string;
-  private accountId: string;
-  private timeout: number;
+  private baseUrl: string = '';
+  private apiKey: string = '';
+  private accountId: string = '';
+  private timeout: number = 10000;
+  private initialized: boolean = false;
 
   constructor(options?: {
     baseUrl?: string;
@@ -44,19 +52,47 @@ export class StackOneMCPClient {
     accountId?: string;
     timeout?: number;
   }) {
-    this.baseUrl = options?.baseUrl || process.env.STACKONE_MCP_URL || 'https://api.stackone.com/mcp';
-    this.apiKey = options?.apiKey || process.env.STACKONE_API_KEY || '';
-    this.accountId = options?.accountId || process.env.STACKONE_ACCOUNT_ID || '';
-    this.timeout = options?.timeout || 10000; // 10s default timeout
+    if (options?.apiKey) {
+      this.initialize(options);
+    }
+  }
+
+  private initialize(options?: {
+    baseUrl?: string;
+    apiKey?: string;
+    accountId?: string;
+    timeout?: number;
+  }) {
+    const env = globalEnv.STACKONE_API_KEY ? globalEnv :
+                (typeof process !== 'undefined' ? process.env : {});
+    this.baseUrl = options?.baseUrl || env.STACKONE_MCP_URL || 'https://api.stackone.com/mcp';
+    this.apiKey = options?.apiKey || env.STACKONE_API_KEY || '';
+    this.accountId = options?.accountId || env.STACKONE_ACCOUNT_ID || '';
+    this.timeout = options?.timeout || 10000;
+    this.initialized = true;
+  }
+
+  private ensureInitialized() {
+    if (!this.initialized) {
+      this.initialize();
+    }
   }
 
   private getAuthHeader(): string {
     // StackOne uses Basic auth with API key as username
     const credentials = `${this.apiKey}:`;
-    return `Basic ${Buffer.from(credentials).toString('base64')}`;
+    // Use btoa for Workers compatibility (Buffer not available)
+    return `Basic ${btoa(credentials)}`;
+  }
+
+  private lastRequestDebug: { headers: Record<string, string>; status?: number; responseText?: string } | null = null;
+
+  getLastRequestDebug() {
+    return this.lastRequestDebug;
   }
 
   private async sendRequest(method: string, params?: Record<string, unknown>): Promise<MCPResponse> {
+    this.ensureInitialized();
     const request = {
       jsonrpc: '2.0' as const,
       id: ++requestId,
@@ -64,25 +100,32 @@ export class StackOneMCPClient {
       params,
     };
 
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json, text/event-stream',
+      'Authorization': this.getAuthHeader(),
+      'x-account-id': this.accountId,
+      'User-Agent': 'StackDash/1.0 (Cloudflare Worker)',
+    };
+
+    this.lastRequestDebug = { headers: { ...headers, Authorization: headers.Authorization.substring(0, 20) + '...' } };
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
       const response = await fetch(this.baseUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json, text/event-stream',
-          'Authorization': this.getAuthHeader(),
-          'x-account-id': this.accountId,
-        },
+        headers,
         body: JSON.stringify(request),
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
+      this.lastRequestDebug.status = response.status;
 
       if (!response.ok) {
+        this.lastRequestDebug.responseText = await response.text();
         throw new Error(`MCP request failed: ${response.status} ${response.statusText}`);
       }
 
@@ -185,6 +228,18 @@ export class StackOneMCPClient {
     return result as MCPToolResult & { content: PylonMCPIssue | null };
   }
 
+  // Debug: get current config
+  getDebugInfo() {
+    this.ensureInitialized();
+    return {
+      baseUrl: this.baseUrl,
+      hasApiKey: !!this.apiKey,
+      apiKeyPrefix: this.apiKey?.substring(0, 10),
+      accountId: this.accountId,
+      initialized: this.initialized,
+    };
+  }
+
   async getIssueMessages(issueId: string): Promise<MCPToolResult> {
     return this.callTool({
       name: MCP_TOOLS.GET_ISSUE_MESSAGES,
@@ -233,5 +288,18 @@ export class StackOneMCPClient {
   }
 }
 
-// Singleton instance
+// Singleton instance (for Bun local dev)
 export const mcpClient = new StackOneMCPClient();
+
+// Factory for creating client with env bindings (for Cloudflare Workers)
+export function createMCPClient(env: {
+  STACKONE_API_KEY?: string;
+  STACKONE_ACCOUNT_ID?: string;
+  STACKONE_MCP_URL?: string;
+}): StackOneMCPClient {
+  return new StackOneMCPClient({
+    apiKey: env.STACKONE_API_KEY,
+    accountId: env.STACKONE_ACCOUNT_ID,
+    baseUrl: env.STACKONE_MCP_URL,
+  });
+}

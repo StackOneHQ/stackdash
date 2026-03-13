@@ -1,0 +1,67 @@
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { health } from './api/health';
+import { createIssuesRoutes } from './api/issues-kv';
+import { createTodosRoutes } from './api/todos-kv';
+import { createWebhookHandler } from './pylon/handler-kv';
+import { setMCPEnv } from './mcp/client';
+import { setKVNamespace } from './store/kv-issues';
+import { setAgentEnv } from './agent';
+import { setVerifyEnv } from './pylon/verify';
+
+type Bindings = {
+  ANTHROPIC_API_KEY: string;
+  STACKONE_API_KEY: string;
+  STACKONE_ACCOUNT_ID: string;
+  PYLON_WEBHOOK_SECRET?: string;
+  ISSUES_KV: KVNamespace;
+  ASSETS?: {
+    fetch: (request: Request) => Promise<Response>;
+  };
+};
+
+const app = new Hono<{ Bindings: Bindings }>();
+
+// Set env and KV for each request
+app.use('*', async (c, next) => {
+  setMCPEnv(c.env);
+  setKVNamespace(c.env.ISSUES_KV);
+  setAgentEnv(c.env);
+  setVerifyEnv(c.env);
+  await next();
+});
+
+// Middleware
+app.use('/api/*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Health check
+app.route('/health', health);
+
+// API routes (KV-backed)
+app.route('/api/issues', createIssuesRoutes());
+app.route('/api/todos', createTodosRoutes());
+
+// Pylon webhook (KV-backed)
+app.post('/api/pylon/webhook', createWebhookHandler());
+
+
+// Fallback to index.html for SPA routing (non-API routes)
+app.get('*', async (c) => {
+  const assets = c.env.ASSETS;
+  if (assets) {
+    // Try to serve the requested file, fallback to index.html
+    const url = new URL(c.req.url);
+    let response = await assets.fetch(new Request(url.origin + url.pathname));
+    if (response.status === 404) {
+      response = await assets.fetch(new Request(url.origin + '/index.html'));
+    }
+    return response;
+  }
+  return c.text('Not found', 404);
+});
+
+export default app;

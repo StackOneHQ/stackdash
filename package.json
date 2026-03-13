@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "start": "bun run src/index.ts",
-    "build": "bun build src/frontend/App.tsx --outdir=dist --minify"
+    "build": "bun build src/frontend/App.tsx --outdir=dist --minify && cp src/frontend/index.html dist/ && cp src/frontend/styles.css dist/",
+    "deploy": "npm run build && wrangler deploy",
+    "cf:dev": "wrangler dev"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
@@ -17,6 +19,7 @@
     "@types/bun": "latest",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "wrangler": "^4.73.0"
   }
 }

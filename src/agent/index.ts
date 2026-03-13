@@ -1,8 +1,24 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { PylonIssue, TriageResult, Priority, CustomerTier, Todo } from '../types';
-import { mcpClient, MCP_TOOLS } from '../mcp/client';
+import { mcpClient } from '../mcp/client';
 
-const anthropic = new Anthropic();
+// Global env storage for Workers compatibility
+let globalEnv: Record<string, string | undefined> = {};
+let anthropicClient: Anthropic | null = null;
+
+export function setAgentEnv(env: Record<string, string | undefined>) {
+  globalEnv = env;
+  anthropicClient = null; // Reset client to pick up new key
+}
+
+function getAnthropicClient(): Anthropic {
+  if (!anthropicClient) {
+    const apiKey = globalEnv.ANTHROPIC_API_KEY ||
+                   (typeof process !== 'undefined' ? process.env?.ANTHROPIC_API_KEY : undefined);
+    anthropicClient = new Anthropic({ apiKey });
+  }
+  return anthropicClient;
+}
 
 // Priority keywords for language analysis
 const PRIORITY_KEYWORDS: Record<Priority, string[]> = {
@@ -166,7 +182,7 @@ ${mcpContext ? `Additional Context:\n${mcpContext}` : ''}
 Provide your triage assessment in JSON format.`;
 
   try {
-    const response = await anthropic.messages.create({
+    const response = await getAnthropicClient().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
       messages: [
@@ -248,7 +264,7 @@ Investigation Outline:
 ${triageResult.investigationOutline.map((item, i) => `${i + 1}. ${item}`).join('\n')}`;
 
   try {
-    const response = await anthropic.messages.create({
+    const response = await getAnthropicClient().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 512,
       messages: [

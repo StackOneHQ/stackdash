@@ -1,6 +1,22 @@
 import type { WebhookVerificationResult } from './types';
 
-const WEBHOOK_SECRET = process.env.PYLON_WEBHOOK_SECRET || '';
+// Global env storage for Workers compatibility
+let globalEnv: Record<string, string | undefined> = {};
+
+export function setVerifyEnv(env: Record<string, string | undefined>) {
+  globalEnv = env;
+}
+
+const getWebhookSecret = () => {
+  // Try globalEnv first (for Workers), then process.env (for Node/Bun)
+  if (globalEnv.PYLON_WEBHOOK_SECRET) {
+    return globalEnv.PYLON_WEBHOOK_SECRET;
+  }
+  if (typeof process !== 'undefined' && process.env?.PYLON_WEBHOOK_SECRET) {
+    return process.env.PYLON_WEBHOOK_SECRET;
+  }
+  return '';
+};
 
 // Compute HMAC-SHA256 signature
 async function computeSignature(payload: string, secret: string): Promise<string> {
@@ -39,8 +55,10 @@ export async function verifyWebhookSignature(
   signature: string | null,
   timestamp: string | null
 ): Promise<WebhookVerificationResult> {
+  const webhookSecret = getWebhookSecret();
+
   // Skip verification if no secret configured (development mode)
-  if (!WEBHOOK_SECRET) {
+  if (!webhookSecret) {
     console.warn('PYLON_WEBHOOK_SECRET not configured - skipping signature verification');
     return { valid: true };
   }
@@ -64,7 +82,7 @@ export async function verifyWebhookSignature(
 
   // Compute expected signature
   const signedPayload = `${timestamp}.${payload}`;
-  const expectedSignature = await computeSignature(signedPayload, WEBHOOK_SECRET);
+  const expectedSignature = await computeSignature(signedPayload, webhookSecret);
 
   // Remove any prefix from signature (e.g., "sha256=")
   const providedSignature = signature.replace(/^sha256=/, '');

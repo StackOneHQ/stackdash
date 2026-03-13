@@ -12,8 +12,12 @@ function stripHtml(html: string): string {
 }
 
 // Build the correct Pylon URL format
-function buildPylonLink(issueId: string): string {
-  return `https://app.usepylon.com/support/issues/views/${issueId}`;
+function buildPylonLink(issueId: string, issueNumber?: number): string {
+  const base = `https://app.usepylon.com/support/issues/views/${issueId}`;
+  if (issueNumber) {
+    return `${base}?issueNumber=${issueNumber}&view=fs`;
+  }
+  return base;
 }
 
 // Convert MCP issue to our internal format
@@ -29,7 +33,7 @@ function convertMCPIssueToInternal(mcpIssue: PylonMCPIssue): PylonIssue {
     createdAt: mcpIssue.created_at,
     source: mcpIssue.source,
     tags: mcpIssue.tags || [],
-    pylonLink: buildPylonLink(mcpIssue.id),
+    pylonLink: buildPylonLink(mcpIssue.id, mcpIssue.number),
     issueNumber: mcpIssue.number,
     state: mcpIssue.state,
     metadata: {
@@ -129,6 +133,12 @@ export async function handlePylonWebhook(c: Context): Promise<Response> {
     payload = JSON.parse(rawBody);
   } catch {
     return c.json({ error: 'Invalid JSON payload' }, 400);
+  }
+
+  // Unwrap if payload is nested inside webhook_payload (Pylon wrapper format)
+  const wrappedPayload = payload as { webhook_payload?: unknown };
+  if (wrappedPayload.webhook_payload) {
+    payload = wrappedPayload.webhook_payload;
   }
 
   let issue: PylonIssue;

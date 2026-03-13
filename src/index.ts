@@ -38,7 +38,7 @@ app.get('/styles.css', async (c) => {
   return c.text(css, 200, { 'Content-Type': 'text/css' });
 });
 
-app.get('/app.js', async (c) => {
+app.get('/App.js', async (c) => {
   // Bundle React app on-the-fly for development
   const result = await Bun.build({
     entrypoints: ['./src/frontend/App.tsx'],
