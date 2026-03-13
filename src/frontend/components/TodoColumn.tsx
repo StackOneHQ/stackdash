@@ -68,12 +68,11 @@ export function TodoColumn({
     <div className="column">
       <div className="column-header">
         <h2 className="column-title">To-Do List</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="column-header-actions">
           <span className="column-count">{pendingCount} pending</span>
           {onCreateManual && !isCreating && (
             <button
-              className="btn btn-primary"
-              style={{ padding: '0.25rem 0.5rem' }}
+              className="btn btn-primary btn-sm"
               onClick={() => setIsCreating(true)}
             >
               + Add
@@ -81,12 +80,7 @@ export function TodoColumn({
           )}
           {completedCount > 0 && (
             <button
-              className="btn"
-              style={{
-                background: 'transparent',
-                color: 'var(--text-muted)',
-                padding: '0.25rem 0.5rem',
-              }}
+              className="btn btn-ghost btn-sm"
               onClick={onClearCompleted}
             >
               Clear done

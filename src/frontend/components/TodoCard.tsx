@@ -137,9 +137,8 @@ export function TodoCard({ todo, onToggle, onDelete, onUpdate }: TodoCardProps) 
         </span>
         {todo.assignee && (
           <span
-            className="assignee-badge"
+            className="assignee-badge todo-assignee"
             title={todo.assignee.email || ''}
-            style={{ marginLeft: 'auto', marginRight: '0.5rem' }}
           >
             {todo.assignee.name || todo.assignee.email || 'Assigned'}
           </span>

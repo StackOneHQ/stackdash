@@ -36,14 +36,14 @@ export function StatsColumn({ stats, lastUpdated }: StatsColumnProps) {
         </div>
         <div className="stat-item">
           <span className="stat-label">Pending Triage</span>
-          <span className="stat-value" style={{ color: 'var(--text-muted)' }}>
+          <span className="stat-value stat-value-pending">
             {stats.pendingTriageCount}
           </span>
         </div>
         {stats.failedTriageCount > 0 && (
           <div className="stat-item">
             <span className="stat-label">Failed Triage</span>
-            <span className="stat-value" style={{ color: 'var(--high-priority)' }}>
+            <span className="stat-value stat-value-failed">
               {stats.failedTriageCount}
             </span>
           </div>
@@ -85,22 +85,22 @@ export function StatsColumn({ stats, lastUpdated }: StatsColumnProps) {
       <div className="stat-group">
         <div className="stat-item">
           <span className="stat-label">Avg Triage Time</span>
-          <span className="stat-value" style={{ fontSize: '1rem' }}>
+          <span className="stat-value stat-value-sm">
             {stats.avgTriageTime > 0 ? formatTime(stats.avgTriageTime) : '—'}
           </span>
         </div>
         <div className="stat-item">
           <span className="stat-label">Recent Activity</span>
-          <span className="stat-value" style={{ fontSize: '1rem' }}>
+          <span className="stat-value stat-value-sm">
             {stats.recentActivityCount} issues
           </span>
         </div>
       </div>
 
-      <div className="stat-group" style={{ marginTop: 'auto' }}>
+      <div className="stat-group stat-group-footer">
         <div className="stat-item">
           <span className="stat-label">Last Updated</span>
-          <span className="stat-value" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+          <span className="stat-value stat-value-muted">
             {formatLastUpdated(lastUpdated)}
           </span>
         </div>

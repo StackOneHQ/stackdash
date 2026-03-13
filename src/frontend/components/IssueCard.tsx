@@ -54,40 +54,29 @@ export function IssueCard({ issue, onTodoGenerated, onDeleted }: IssueCardProps)
       <div className="issue-card-header">
         <span className="issue-title">
           {pylonLink ? (
-            <a
-              href={pylonLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: 'inherit',
-                textDecoration: 'none',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
-            >
+            <a href={pylonLink} target="_blank" rel="noopener noreferrer">
               {issueNumber ? `#${issueNumber} ` : ''}{issue.originalIssue.title}
             </a>
           ) : (
             issue.originalIssue.title
           )}
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="issue-card-actions">
           {!isPending && (
             <span className={`priority-badge ${issue.priority}`}>
               {issue.priority}
             </span>
           )}
           {isPending && (
-            <span className="priority-badge" style={{ background: 'rgba(100, 116, 139, 0.2)', color: '#64748b' }}>
+            <span className="priority-badge pending-badge">
               {issue.status === 'triaging' ? 'Analyzing...' : 'Pending'}
             </span>
           )}
           <button
-            className="todo-delete"
+            className="issue-delete-btn"
             onClick={handleDelete}
             disabled={isDeleting}
             title="Remove issue"
-            style={{ opacity: 1 }}
           >
             {isDeleting ? '...' : '×'}
           </button>
@@ -97,20 +86,20 @@ export function IssueCard({ issue, onTodoGenerated, onDeleted }: IssueCardProps)
       {issue.summary ? (
         <p className="issue-summary">{issue.summary}</p>
       ) : (
-        <p className="issue-summary" style={{ fontStyle: 'italic' }}>
+        <p className="issue-summary issue-summary-placeholder">
           {issue.originalIssue.description.slice(0, 100)}
           {issue.originalIssue.description.length > 100 ? '...' : ''}
         </p>
       )}
 
       <div className="issue-meta">
-        <span>
+        <span className="issue-customer">
           {issue.originalIssue.accountName ||
            issue.originalIssue.customerName ||
            issue.originalIssue.customerEmail ||
            'Unknown'}
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="issue-meta-right">
           {issue.originalIssue.assignee && (
             <span className="assignee-badge" title={issue.originalIssue.assignee.email || ''}>
               {issue.originalIssue.assignee.name || issue.originalIssue.assignee.email || 'Assigned'}
@@ -122,7 +111,7 @@ export function IssueCard({ issue, onTodoGenerated, onDeleted }: IssueCardProps)
           {issue.originalIssue.source && (
             <span className="customer-tier">{issue.originalIssue.source}</span>
           )}
-          <span>{formatTime(issue.originalIssue.createdAt)}</span>
+          <span className="issue-time">{formatTime(issue.originalIssue.createdAt)}</span>
         </div>
       </div>
 
@@ -135,7 +124,7 @@ export function IssueCard({ issue, onTodoGenerated, onDeleted }: IssueCardProps)
           >
             {isGenerating ? (
               <>
-                <span className="spinner" style={{ width: 12, height: 12, borderWidth: 1.5 }} />
+                <span className="spinner spinner-sm" />
                 Creating...
               </>
             ) : (
@@ -147,13 +136,7 @@ export function IssueCard({ issue, onTodoGenerated, onDeleted }: IssueCardProps)
               href={pylonLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn"
-              style={{
-                marginLeft: '0.5rem',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-secondary)',
-                textDecoration: 'none',
-              }}
+              className="btn btn-secondary"
             >
               View in Pylon
             </a>
@@ -163,7 +146,7 @@ export function IssueCard({ issue, onTodoGenerated, onDeleted }: IssueCardProps)
 
       {issue.status === 'failed' && (
         <div className="issue-actions">
-          <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>
+          <span className="issue-error">
             Triage failed: {issue.errorMessage}
           </span>
         </div>
