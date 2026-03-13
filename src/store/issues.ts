@@ -155,12 +155,18 @@ class IssueStore {
     );
   }
 
+  // Helper to get assignee from issue (checks both top-level and metadata)
+  private getIssueAssignee(issue: TriagedIssue): Assignee | undefined {
+    const originalIssue = issue.originalIssue as typeof issue.originalIssue & { metadata?: { assignee?: Assignee } };
+    return originalIssue.assignee || originalIssue.metadata?.assignee;
+  }
+
   // Get all unique assignees from issues
   getAssignees(): Assignee[] {
     const assigneeMap = new Map<string, Assignee>();
 
     for (const issue of this.issues.values()) {
-      const assignee = issue.originalIssue.assignee;
+      const assignee = this.getIssueAssignee(issue);
       if (assignee && assignee.id) {
         assigneeMap.set(assignee.id, assignee);
       }
@@ -176,14 +182,14 @@ class IssueStore {
   // Get issues filtered by assignee
   getIssuesByAssignee(assigneeId: string): TriagedIssue[] {
     return this.getAllIssues().filter(
-      i => i.originalIssue.assignee?.id === assigneeId
+      i => this.getIssueAssignee(i)?.id === assigneeId
     );
   }
 
   // Get unassigned issues
   getUnassignedIssues(): TriagedIssue[] {
     return this.getAllIssues().filter(
-      i => !i.originalIssue.assignee
+      i => !this.getIssueAssignee(i)
     );
   }
 

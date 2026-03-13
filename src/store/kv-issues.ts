@@ -154,7 +154,9 @@ export const kvIssueStore = {
     const assigneeMap = new Map<string, Assignee>();
 
     for (const issue of Object.values(data.issues)) {
-      const assignee = issue.originalIssue.assignee;
+      // Check both top-level and metadata.assignee (legacy data format)
+      const originalIssue = issue.originalIssue as typeof issue.originalIssue & { metadata?: { assignee?: Assignee } };
+      const assignee = originalIssue.assignee || originalIssue.metadata?.assignee;
       if (assignee && assignee.id) {
         assigneeMap.set(assignee.id, assignee);
       }

@@ -15,8 +15,10 @@ export function IssueCard({ issue, userMap, onTodoGenerated, onDeleted }: IssueC
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Get enriched assignee data from userMap
+  // Check both top-level assignee and metadata.assignee (legacy data format)
   const assignee = useMemo(() => {
-    const issueAssignee = issue.originalIssue.assignee;
+    const originalIssue = issue.originalIssue as TriagedIssue['originalIssue'] & { metadata?: { assignee?: Assignee } };
+    const issueAssignee = originalIssue.assignee || originalIssue.metadata?.assignee;
     if (!issueAssignee) return null;
 
     // Look up the user in the userMap to get name/email
@@ -29,7 +31,7 @@ export function IssueCard({ issue, userMap, onTodoGenerated, onDeleted }: IssueC
       };
     }
     return issueAssignee;
-  }, [issue.originalIssue.assignee, userMap]);
+  }, [issue.originalIssue, userMap]);
 
   const handleDelete = async () => {
     if (isDeleting) return;
@@ -126,11 +128,12 @@ export function IssueCard({ issue, userMap, onTodoGenerated, onDeleted }: IssueC
            'Unknown'}
         </span>
         <div className="issue-meta-right">
-          {assignee && (
-            <span className="assignee-badge" title={assignee.email || ''}>
-              {assignee.name || assignee.email || 'Assigned'}
-            </span>
-          )}
+          <span
+            className={`assignee-badge ${!assignee ? 'unassigned' : ''}`}
+            title={assignee?.email || 'No assignee'}
+          >
+            {assignee ? (assignee.name || assignee.email || 'Assigned') : 'Unassigned'}
+          </span>
           {issue.originalIssue.customerTier && (
             <span className="customer-tier">{issue.originalIssue.customerTier}</span>
           )}

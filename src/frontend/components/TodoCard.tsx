@@ -153,14 +153,12 @@ export function TodoCard({ todo, userMap, onToggle, onDelete, onUpdate }: TodoCa
         <span className={`todo-title ${todo.completed ? 'completed' : ''}`}>
           {todo.title}
         </span>
-        {assignee && (
-          <span
-            className="assignee-badge todo-assignee"
-            title={assignee.email || ''}
-          >
-            {assignee.name || assignee.email || 'Assigned'}
-          </span>
-        )}
+        <span
+          className={`assignee-badge todo-assignee ${!assignee ? 'unassigned' : ''}`}
+          title={assignee?.email || 'No assignee'}
+        >
+          {assignee ? (assignee.name || assignee.email || 'Assigned') : 'Unassigned'}
+        </span>
         {onUpdate && (
           <button
             className="todo-edit-btn"

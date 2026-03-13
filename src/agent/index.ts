@@ -289,6 +289,9 @@ ${triageResult.investigationOutline.map((item, i) => `${i + 1}. ${item}`).join('
       steps: string[];
     };
 
+    // Get assignee from top-level or metadata (legacy data)
+    const assignee = issue.assignee || (issue.metadata as { assignee?: typeof issue.assignee })?.assignee;
+
     return {
       id: `todo-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       issueId: issue.id,
@@ -297,10 +300,13 @@ ${triageResult.investigationOutline.map((item, i) => `${i + 1}. ${item}`).join('
       steps: parsed.steps,
       createdAt: new Date().toISOString(),
       completed: false,
-      assignee: issue.assignee,
+      assignee,
     };
   } catch (error) {
     console.error('Todo generation failed:', error);
+
+    // Get assignee from top-level or metadata (legacy data)
+    const assignee = issue.assignee || (issue.metadata as { assignee?: typeof issue.assignee })?.assignee;
 
     // Fallback todo
     return {
@@ -311,7 +317,7 @@ ${triageResult.investigationOutline.map((item, i) => `${i + 1}. ${item}`).join('
       steps: triageResult.investigationOutline,
       createdAt: new Date().toISOString(),
       completed: false,
-      assignee: issue.assignee,
+      assignee,
     };
   }
 }

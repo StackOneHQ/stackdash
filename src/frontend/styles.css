@@ -515,6 +515,11 @@ body {
   white-space: nowrap;
 }
 
+.assignee-badge.unassigned {
+  background: rgba(100, 116, 139, 0.2);
+  color: var(--text-muted);
+}
+
 /* Issue card actions row */
 .issue-card-actions {
   display: flex;

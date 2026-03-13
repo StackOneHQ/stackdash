@@ -4,7 +4,13 @@ import { useIssues } from './hooks/useIssues';
 import { useTodos } from './hooks/useTodos';
 import { Dashboard } from './components/Dashboard';
 import { AssigneeFilter } from './components/AssigneeFilter';
-import type { Todo } from './types';
+import type { Todo, TriagedIssue, Assignee } from './types';
+
+// Helper to get assignee from issue (checks both top-level and metadata)
+function getIssueAssignee(issue: TriagedIssue): Assignee | undefined {
+  const originalIssue = issue.originalIssue as typeof issue.originalIssue & { metadata?: { assignee?: Assignee } };
+  return originalIssue.assignee || originalIssue.metadata?.assignee;
+}
 
 function App() {
   const { issues, stats, assignees, userMap, isLoading, lastUpdated, refetch } = useIssues();
@@ -28,9 +34,9 @@ function App() {
       return issues;
     }
     if (selectedAssignee === 'unassigned') {
-      return issues.filter(i => !i.originalIssue.assignee);
+      return issues.filter(i => !getIssueAssignee(i));
     }
-    return issues.filter(i => i.originalIssue.assignee?.id === selectedAssignee);
+    return issues.filter(i => getIssueAssignee(i)?.id === selectedAssignee);
   }, [issues, selectedAssignee]);
 
   // Filter todos based on selected assignee (by matching issue assignee)
