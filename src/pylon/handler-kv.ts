@@ -3,6 +3,7 @@ import type { PylonWebhookPayload, LegacyPylonWebhookPayload, PylonIssueData, Py
 import type { PylonIssue } from '../types';
 import { verifyWebhookSignature, parseSignatureHeader } from './verify';
 import { kvIssueStore } from '../store/kv-issues';
+import { kvUserStore } from '../store/kv-users';
 import { triageIssue } from '../agent';
 import { mcpClient } from '../mcp/client';
 
@@ -220,6 +221,10 @@ async function enrichAndTriageIssue(issueId: string, initialIssue: PylonIssue): 
 
     if (!mcpResult.isError && mcpResult.content) {
       enrichedIssue = convertMCPIssueToInternal(mcpResult.content);
+      // Enrich assignee with full user data from cache
+      if (enrichedIssue.assignee) {
+        enrichedIssue.assignee = await kvUserStore.enrichAssignee(enrichedIssue.assignee);
+      }
       console.log(`Issue enriched from MCP: ${issueId} - Link: ${enrichedIssue.pylonLink}`);
     } else {
       console.warn(`MCP fetch failed for ${issueId}: ${mcpResult.errorMessage}`);

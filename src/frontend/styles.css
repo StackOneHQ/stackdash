@@ -1538,49 +1538,28 @@ body {
   align-items: stretch;
 }
 
-.import-btn-main {
-  padding: var(--space-xs) var(--space-sm);
-  font-size: 0.75rem;
-  font-weight: 500;
-  border: 1px solid var(--border-medium);
-  border-right: none;
+.import-btn-group .btn {
+  border-radius: 0;
+}
+
+.import-btn-group .btn:first-child {
   border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  border-right: none;
 }
 
-.import-btn-main:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: var(--accent);
-}
-
-.import-btn-main:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.import-btn-select {
-  padding: var(--space-xs) var(--space-xs);
-  font-size: 0.75rem;
-  border: 1px solid var(--border-medium);
+.import-btn-group .btn:last-child {
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
+}
+
+.import-btn-group select.btn {
   min-width: 42px;
+  padding-left: var(--space-xs);
+  padding-right: var(--space-xs);
+  color: var(--text-secondary);
 }
 
-.import-btn-select:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: var(--accent);
-}
-
-.import-btn-select:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.import-btn-group select.btn:hover:not(:disabled) {
+  color: var(--text-primary);
 }
 
 @keyframes slideIn {

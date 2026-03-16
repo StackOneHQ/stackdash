@@ -146,7 +146,7 @@ export function TodoColumn({
           {canImportMeetings && (
             <div className="import-btn-group">
               <button
-                className="import-btn-main"
+                className="btn btn-secondary btn-sm"
                 onClick={handleImportMeetings}
                 disabled={isImporting}
                 title={`Import action items from ${selectedAssignee?.name}'s recent meetings`}
@@ -154,7 +154,7 @@ export function TodoColumn({
                 {isImporting ? 'Importing...' : 'Import Meetings'}
               </button>
               <select
-                className="import-btn-select"
+                className="btn btn-secondary btn-sm"
                 value={importRange}
                 onChange={(e) => setImportRange(e.target.value)}
                 disabled={isImporting}

@@ -3,6 +3,7 @@ import type { PylonWebhookPayload, LegacyPylonWebhookPayload, PylonIssueData, Py
 import type { PylonIssue } from '../types';
 import { verifyWebhookSignature, parseSignatureHeader } from './verify';
 import { issueStore } from '../store/issues';
+import { userStore } from '../store/users';
 import { triageIssue } from '../agent';
 import { mcpClient } from '../mcp/client';
 
@@ -36,11 +37,11 @@ function convertMCPIssueToInternal(mcpIssue: PylonMCPIssue): PylonIssue {
     pylonLink: buildPylonLink(mcpIssue.id, mcpIssue.number),
     issueNumber: mcpIssue.number,
     state: mcpIssue.state,
-    assignee: mcpIssue.assignee ? {
+    assignee: mcpIssue.assignee ? userStore.enrichAssignee({
       id: mcpIssue.assignee.id,
       name: mcpIssue.assignee.name,
       email: mcpIssue.assignee.email,
-    } : undefined,
+    }) : undefined,
     metadata: {
       team: mcpIssue.team,
       customFields: mcpIssue.custom_fields,
