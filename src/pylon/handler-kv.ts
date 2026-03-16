@@ -221,10 +221,23 @@ async function enrichAndTriageIssue(issueId: string, initialIssue: PylonIssue): 
 
     if (!mcpResult.isError && mcpResult.content) {
       enrichedIssue = convertMCPIssueToInternal(mcpResult.content);
+
       // Enrich assignee with full user data from cache
       if (enrichedIssue.assignee) {
         enrichedIssue.assignee = await kvUserStore.enrichAssignee(enrichedIssue.assignee);
       }
+
+      // Fetch account name if we have accountId but no accountName
+      if (enrichedIssue.accountId && !enrichedIssue.accountName) {
+        const accountResult = await mcpClient.getAccount(enrichedIssue.accountId);
+        if (!accountResult.isError && accountResult.content) {
+          const account = accountResult.content as { name?: string };
+          if (account.name) {
+            enrichedIssue.accountName = account.name;
+          }
+        }
+      }
+
       console.log(`Issue enriched from MCP: ${issueId} - Link: ${enrichedIssue.pylonLink}`);
     } else {
       console.warn(`MCP fetch failed for ${issueId}: ${mcpResult.errorMessage}`);

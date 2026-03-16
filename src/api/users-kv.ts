@@ -14,30 +14,48 @@ export function createUsersRoutes() {
     const isStale = await kvUserStore.isCacheStale();
 
     if (!hasUsers || isStale) {
-      console.log('Fetching teams from Pylon MCP...');
-      const result = await mcpClient.listTeams();
+      // Fetch both teams (for SE display names) and all users (for complete coverage)
+      const [teamsResult, usersResult] = await Promise.all([
+        mcpClient.listTeams(),
+        mcpClient.listUsers(),
+      ]);
 
-      if (!result.isError && result.content) {
-        // Find the SEs team
-        const seTeam = result.content.find(team => team.name === SE_TEAM_NAME);
+      // Build user map, starting with all users
+      const usersMap = new Map<string, { id: string; email: string; name: string }>();
+
+      // First, add all users from listUsers (provides complete coverage)
+      if (!usersResult.isError && usersResult.content) {
+        for (const user of usersResult.content) {
+          if (user.id && user.email) {
+            const namePart = user.email.split('@')[0];
+            const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+            usersMap.set(user.id, {
+              id: user.id,
+              email: user.email,
+              name: user.name || capitalizedName,
+            });
+          }
+        }
+      }
+
+      // Then, override with SE team members (they get priority for display names)
+      if (!teamsResult.isError && teamsResult.content) {
+        const seTeam = teamsResult.content.find(team => team.name === SE_TEAM_NAME);
         if (seTeam) {
-          // Convert team members to user format
-          const seTeamUsers = seTeam.users.map(member => {
+          for (const member of seTeam.users) {
             const namePart = member.email.split('@')[0];
             const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-            return {
+            usersMap.set(member.id, {
               id: member.id,
               email: member.email,
               name: capitalizedName,
-            };
-          });
-          await kvUserStore.setUsers(seTeamUsers);
-          console.log(`Cached ${seTeamUsers.length} SE team users from Pylon`);
-        } else {
-          console.warn('SEs team not found');
+            });
+          }
         }
-      } else {
-        console.warn('Failed to fetch teams from MCP:', result.errorMessage);
+      }
+
+      if (usersMap.size > 0) {
+        await kvUserStore.setUsers(Array.from(usersMap.values()));
       }
     }
 
@@ -47,43 +65,62 @@ export function createUsersRoutes() {
 
   // POST /api/users/refresh - Force refresh the users cache
   users.post('/refresh', async (c) => {
-    console.log('Force refreshing teams from Pylon MCP...');
-    const result = await mcpClient.listTeams();
+    // Fetch both teams and all users
+    const [teamsResult, usersResult] = await Promise.all([
+      mcpClient.listTeams(),
+      mcpClient.listUsers(),
+    ]);
 
-    if (!result.isError && result.content) {
-      // Find the SEs team
-      const seTeam = result.content.find(team => team.name === SE_TEAM_NAME);
+    // Build user map
+    const usersMap = new Map<string, { id: string; email: string; name: string }>();
+
+    // First, add all users from listUsers
+    if (!usersResult.isError && usersResult.content) {
+      for (const user of usersResult.content) {
+        if (user.id && user.email) {
+          const namePart = user.email.split('@')[0];
+          const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+          usersMap.set(user.id, {
+            id: user.id,
+            email: user.email,
+            name: user.name || capitalizedName,
+          });
+        }
+      }
+    }
+
+    // Override with SE team members
+    let seTeamCount = 0;
+    if (!teamsResult.isError && teamsResult.content) {
+      const seTeam = teamsResult.content.find(team => team.name === SE_TEAM_NAME);
       if (seTeam) {
-        // Convert team members to user format
-        const seTeamUsers = seTeam.users.map(member => {
+        seTeamCount = seTeam.users.length;
+        for (const member of seTeam.users) {
           const namePart = member.email.split('@')[0];
           const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-          return {
+          usersMap.set(member.id, {
             id: member.id,
             email: member.email,
             name: capitalizedName,
-          };
-        });
-        await kvUserStore.setUsers(seTeamUsers);
-        console.log(`Refreshed: ${seTeamUsers.length} SE team users from Pylon`);
-        return c.json({
-          success: true,
-          count: seTeamUsers.length,
-          teamName: seTeam.name,
-          users: seTeamUsers,
-        });
+          });
+        }
       }
+    }
 
+    if (usersMap.size > 0) {
+      const allUsers = Array.from(usersMap.values());
+      await kvUserStore.setUsers(allUsers);
       return c.json({
-        success: false,
-        error: 'SEs team not found',
-        availableTeams: result.content.map(t => t.name),
-      }, 404);
+        success: true,
+        count: usersMap.size,
+        seTeamCount,
+        users: allUsers,
+      });
     }
 
     return c.json({
       success: false,
-      error: result.errorMessage || 'Failed to fetch teams',
+      error: 'No users found from MCP',
     }, 500);
   });
 

@@ -1,6 +1,52 @@
 import { Hono } from 'hono';
 import { kvIssueStore } from '../store/kv-issues';
-import type { IssuesResponse } from '../types';
+import { kvUserStore } from '../store/kv-users';
+import { mcpClient } from '../mcp/client';
+import type { IssuesResponse, PylonIssue } from '../types';
+import type { PylonMCPIssue } from '../pylon/types';
+
+// Strip HTML tags from string
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
+// Build the correct Pylon URL format
+function buildPylonLink(issueId: string, issueNumber?: number): string {
+  const base = `https://app.usepylon.com/support/issues/views/${issueId}`;
+  if (issueNumber) {
+    return `${base}?issueNumber=${issueNumber}&view=fs`;
+  }
+  return base;
+}
+
+// Convert MCP issue to internal format
+function convertMCPIssueToInternal(mcpIssue: PylonMCPIssue): PylonIssue {
+  return {
+    id: mcpIssue.id,
+    title: mcpIssue.title,
+    description: stripHtml(mcpIssue.body_html),
+    customerEmail: mcpIssue.requester?.email || '',
+    customerName: mcpIssue.requester?.name,
+    accountId: mcpIssue.account?.id,
+    accountName: mcpIssue.account?.name,
+    createdAt: mcpIssue.created_at,
+    source: mcpIssue.source,
+    tags: mcpIssue.tags || [],
+    pylonLink: buildPylonLink(mcpIssue.id, mcpIssue.number),
+    issueNumber: mcpIssue.number,
+    state: mcpIssue.state,
+    assignee: mcpIssue.assignee ? {
+      id: mcpIssue.assignee.id,
+      name: mcpIssue.assignee.name,
+      email: mcpIssue.assignee.email,
+    } : undefined,
+    metadata: {
+      team: mcpIssue.team,
+      customFields: mcpIssue.custom_fields,
+      externalIssues: mcpIssue.external_issues,
+    },
+  };
+}
 
 export function createIssuesRoutes() {
   const issues = new Hono();
@@ -60,6 +106,58 @@ export function createIssuesRoutes() {
     }
 
     return c.json({ deleted: true, id });
+  });
+
+  // POST /api/issues/:id/refresh - Re-fetch and update issue from MCP
+  issues.post('/:id/refresh', async (c) => {
+    const id = c.req.param('id');
+    const existingIssue = await kvIssueStore.getIssue(id);
+
+    if (!existingIssue) {
+      return c.json({ error: 'Issue not found' }, 404);
+    }
+
+    console.log(`Refreshing issue from MCP: ${id}`);
+    const mcpResult = await mcpClient.getIssue(id);
+
+    if (mcpResult.isError || !mcpResult.content) {
+      return c.json({
+        error: 'Failed to fetch issue from MCP',
+        details: mcpResult.errorMessage,
+      }, 500);
+    }
+
+    // Convert and enrich
+    const refreshedIssue = convertMCPIssueToInternal(mcpResult.content);
+    if (refreshedIssue.assignee) {
+      refreshedIssue.assignee = await kvUserStore.enrichAssignee(refreshedIssue.assignee);
+    }
+
+    // Fetch account name if we have accountId but no accountName
+    if (refreshedIssue.accountId && !refreshedIssue.accountName) {
+      const accountResult = await mcpClient.getAccount(refreshedIssue.accountId);
+      if (!accountResult.isError && accountResult.content) {
+        const account = accountResult.content as { name?: string };
+        if (account.name) {
+          refreshedIssue.accountName = account.name;
+        }
+      }
+    }
+
+    // Update the issue with refreshed data
+    await kvIssueStore.updateTriagedIssue(id, {
+      priority: existingIssue.priority,
+      priorityConfidence: existingIssue.priorityConfidence,
+      summary: existingIssue.summary,
+      investigationOutline: existingIssue.investigationOutline,
+    }, refreshedIssue);
+
+    const updatedIssue = await kvIssueStore.getIssue(id);
+
+    return c.json({
+      success: true,
+      issue: updatedIssue,
+    });
   });
 
   return issues;

@@ -196,7 +196,7 @@ export function IssueCard({ issue, userMap, onTodoGenerated, onDeleted }: IssueC
           {issue.originalIssue.accountName ||
            issue.originalIssue.customerName ||
            issue.originalIssue.customerEmail ||
-           'Unknown'}
+           (issue.originalIssue.source ? `Via ${issue.originalIssue.source}` : 'Unknown')}
         </span>
         <div className="issue-meta-right">
           <span
