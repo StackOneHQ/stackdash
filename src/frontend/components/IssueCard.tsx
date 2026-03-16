@@ -71,6 +71,7 @@ export function IssueCard({ issue, userMap, onTodoGenerated, onDeleted }: IssueC
 
     setIsGeneratingPrompt(true);
     setGeneratedPrompt(null);
+    setGeneratedResponse(null); // Clear response when generating prompt
     const result = await generatePrompt(issue.id);
     setIsGeneratingPrompt(false);
 
@@ -86,6 +87,7 @@ export function IssueCard({ issue, userMap, onTodoGenerated, onDeleted }: IssueC
 
     setIsGeneratingResponse(true);
     setGeneratedResponse(null);
+    setGeneratedPrompt(null); // Clear prompt when generating response
     const result = await generateCustomerResponse(issue.id);
     setIsGeneratingResponse(false);
 
@@ -115,9 +117,24 @@ export function IssueCard({ issue, userMap, onTodoGenerated, onDeleted }: IssueC
     }
   };
 
-  const formatTime = (timestamp: string) => {
+  const formatDateTime = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (isToday) {
+      return time;
+    } else if (isYesterday) {
+      return `Yesterday ${time}`;
+    } else {
+      const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      return `${dateStr} ${time}`;
+    }
   };
 
   const isPending = issue.status === 'pending' || issue.status === 'triaging';
@@ -194,7 +211,7 @@ export function IssueCard({ issue, userMap, onTodoGenerated, onDeleted }: IssueC
           {issue.originalIssue.source && (
             <span className="customer-tier">{issue.originalIssue.source}</span>
           )}
-          <span className="issue-time">{formatTime(issue.originalIssue.createdAt)}</span>
+          <span className="issue-time">{formatDateTime(issue.originalIssue.createdAt)}</span>
         </div>
       </div>
 
@@ -220,7 +237,7 @@ export function IssueCard({ issue, userMap, onTodoGenerated, onDeleted }: IssueC
                 href={pylonLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-secondary"
+                className="btn btn-link"
               >
                 View in Pylon
               </a>
@@ -229,7 +246,7 @@ export function IssueCard({ issue, userMap, onTodoGenerated, onDeleted }: IssueC
 
           <div className="issue-actions">
             <button
-              className="btn btn-secondary"
+              className="btn btn-ai"
               onClick={handleGeneratePrompt}
               disabled={isGeneratingPrompt}
             >
@@ -243,7 +260,7 @@ export function IssueCard({ issue, userMap, onTodoGenerated, onDeleted }: IssueC
               )}
             </button>
             <button
-              className="btn btn-secondary"
+              className="btn btn-ai"
               onClick={handleGenerateResponse}
               disabled={isGeneratingResponse}
             >

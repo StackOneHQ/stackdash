@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Todo, Assignee } from '../types';
 
 interface TodoCardProps {
@@ -7,13 +7,53 @@ interface TodoCardProps {
   onToggle: () => void;
   onDelete: () => void;
   onUpdate?: (updates: Partial<Todo>) => void;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  onDragStart?: () => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: () => void;
+  onDrop?: () => void;
+  onDragEnd?: () => void;
 }
 
-export function TodoCard({ todo, userMap, onToggle, onDelete, onUpdate }: TodoCardProps) {
+export function TodoCard({
+  todo,
+  userMap,
+  onToggle,
+  onDelete,
+  onUpdate,
+  isDragging,
+  isDragOver,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
+}: TodoCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(todo.title);
   const [editDescription, setEditDescription] = useState(todo.description);
   const [editSteps, setEditSteps] = useState<string[]>(todo.steps);
+  const [editAssigneeId, setEditAssigneeId] = useState<string>(todo.assignee?.id || '');
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!showAssigneeDropdown) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowAssigneeDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAssigneeDropdown]);
+
+  // Convert userMap to array for dropdown
+  const users = useMemo(() => Array.from(userMap.values()), [userMap]);
 
   // Get enriched assignee data from userMap
   const assignee = useMemo(() => {
@@ -34,10 +74,12 @@ export function TodoCard({ todo, userMap, onToggle, onDelete, onUpdate }: TodoCa
 
   const handleSave = () => {
     if (onUpdate && editTitle.trim()) {
+      const selectedUser = editAssigneeId ? userMap.get(editAssigneeId) : undefined;
       onUpdate({
         title: editTitle.trim(),
         description: editDescription.trim(),
         steps: editSteps.filter(s => s.trim() !== ''),
+        assignee: selectedUser,
       });
       setIsEditing(false);
     }
@@ -47,6 +89,7 @@ export function TodoCard({ todo, userMap, onToggle, onDelete, onUpdate }: TodoCa
     setEditTitle(todo.title);
     setEditDescription(todo.description);
     setEditSteps(todo.steps);
+    setEditAssigneeId(todo.assignee?.id || '');
     setIsEditing(false);
   };
 
@@ -62,6 +105,13 @@ export function TodoCard({ todo, userMap, onToggle, onDelete, onUpdate }: TodoCa
     const newSteps = [...editSteps];
     newSteps[index] = value;
     setEditSteps(newSteps);
+  };
+
+  const handleAssigneeChange = (user: Assignee | null) => {
+    if (onUpdate) {
+      onUpdate({ assignee: user || undefined });
+    }
+    setShowAssigneeDropdown(false);
   };
 
   if (isEditing) {
@@ -88,6 +138,22 @@ export function TodoCard({ todo, userMap, onToggle, onDelete, onUpdate }: TodoCa
             placeholder="Description (optional)"
             rows={2}
           />
+        </div>
+
+        <div className="todo-edit-field">
+          <label>Assignee</label>
+          <select
+            className="todo-select"
+            value={editAssigneeId}
+            onChange={(e) => setEditAssigneeId(e.target.value)}
+          >
+            <option value="">Unassigned</option>
+            {users.map(user => (
+              <option key={user.id} value={user.id}>
+                {user.name || user.email || user.id}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="todo-edit-field">
@@ -134,8 +200,23 @@ export function TodoCard({ todo, userMap, onToggle, onDelete, onUpdate }: TodoCa
     );
   }
 
+  const cardClassName = [
+    'todo-card',
+    todo.completed ? 'completed' : '',
+    isDragging ? 'dragging' : '',
+    isDragOver ? 'drag-over' : '',
+  ].filter(Boolean).join(' ');
+
   return (
-    <div className={`todo-card ${todo.completed ? 'completed' : ''}`}>
+    <div
+      className={cardClassName}
+      draggable={!todo.completed}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+    >
       <div className="todo-header">
         <div
           className={`todo-checkbox ${todo.completed ? 'checked' : ''}`}
@@ -153,12 +234,39 @@ export function TodoCard({ todo, userMap, onToggle, onDelete, onUpdate }: TodoCa
         <span className={`todo-title ${todo.completed ? 'completed' : ''}`}>
           {todo.title}
         </span>
-        <span
-          className={`assignee-badge todo-assignee ${!assignee ? 'unassigned' : ''}`}
-          title={assignee?.email || 'No assignee'}
-        >
-          {assignee ? (assignee.name || assignee.email || 'Assigned') : 'Unassigned'}
-        </span>
+        <div className="assignee-selector" ref={dropdownRef}>
+          <span
+            className={`assignee-badge todo-assignee ${!assignee ? 'unassigned' : ''} ${onUpdate ? 'clickable' : ''}`}
+            title={onUpdate ? 'Click to assign' : (assignee?.email || 'No assignee')}
+            onClick={(e) => {
+              if (onUpdate) {
+                e.stopPropagation();
+                setShowAssigneeDropdown(!showAssigneeDropdown);
+              }
+            }}
+          >
+            {assignee ? (assignee.name || assignee.email || 'Assigned') : 'Unassigned'}
+          </span>
+          {showAssigneeDropdown && (
+            <div className="assignee-dropdown">
+              <div
+                className={`assignee-option ${!assignee ? 'selected' : ''}`}
+                onClick={() => handleAssigneeChange(null)}
+              >
+                Unassigned
+              </div>
+              {users.map(user => (
+                <div
+                  key={user.id}
+                  className={`assignee-option ${assignee?.id === user.id ? 'selected' : ''}`}
+                  onClick={() => handleAssigneeChange(user)}
+                >
+                  {user.name || user.email || user.id}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         {onUpdate && (
           <button
             className="todo-edit-btn"

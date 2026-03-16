@@ -22,6 +22,7 @@ function App() {
     updateTodo,
     createManualTodo,
     clearCompleted,
+    reorderTodos,
     pendingCount,
     completedCount,
   } = useTodos();
@@ -102,6 +103,7 @@ function App() {
         onTodoUpdate={updateTodo}
         onTodoCreateManual={createManualTodo}
         onClearCompleted={clearCompleted}
+        onTodoReorder={reorderTodos}
         onIssueDeleted={handleIssueDeleted}
         pendingTodoCount={filteredTodos.filter(t => !t.completed).length}
         completedTodoCount={filteredTodos.filter(t => t.completed).length}

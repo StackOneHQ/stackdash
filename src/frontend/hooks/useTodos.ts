@@ -11,6 +11,7 @@ interface UseTodosReturn {
   updateTodo: (id: string, updates: Partial<Todo>) => void;
   createManualTodo: (title: string, description?: string, steps?: string[]) => void;
   clearCompleted: () => void;
+  reorderTodos: (draggedId: string, targetId: string) => void;
   pendingCount: number;
   completedCount: number;
 }
@@ -94,6 +95,20 @@ export function useTodos(): UseTodosReturn {
     setTodos(prev => prev.filter(todo => !todo.completed));
   }, []);
 
+  const reorderTodos = useCallback((draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
+    setTodos(prev => {
+      const draggedIndex = prev.findIndex(t => t.id === draggedId);
+      const targetIndex = prev.findIndex(t => t.id === targetId);
+      if (draggedIndex === -1 || targetIndex === -1) return prev;
+
+      const result = [...prev];
+      const [removed] = result.splice(draggedIndex, 1);
+      result.splice(targetIndex, 0, removed);
+      return result;
+    });
+  }, []);
+
   const pendingCount = todos.filter(t => !t.completed).length;
   const completedCount = todos.filter(t => t.completed).length;
 
@@ -105,6 +120,7 @@ export function useTodos(): UseTodosReturn {
     updateTodo,
     createManualTodo,
     clearCompleted,
+    reorderTodos,
     pendingCount,
     completedCount,
   };

@@ -10,6 +10,7 @@ interface TodoColumnProps {
   onUpdate?: (id: string, updates: Partial<Todo>) => void;
   onCreateManual?: (title: string, description?: string, steps?: string[]) => void;
   onClearCompleted: () => void;
+  onReorder: (draggedId: string, targetId: string) => void;
   pendingCount: number;
   completedCount: number;
 }
@@ -22,6 +23,7 @@ export function TodoColumn({
   onUpdate,
   onCreateManual,
   onClearCompleted,
+  onReorder,
   pendingCount,
   completedCount,
 }: TodoColumnProps) {
@@ -29,6 +31,36 @@ export function TodoColumn({
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newSteps, setNewSteps] = useState<string[]>([]);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+  const handleDragStart = (id: string) => {
+    setDraggedId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (id !== draggedId) {
+      setDragOverId(id);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverId(null);
+  };
+
+  const handleDrop = (targetId: string) => {
+    if (draggedId && draggedId !== targetId) {
+      onReorder(draggedId, targetId);
+    }
+    setDraggedId(null);
+    setDragOverId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
+  };
 
   const handleCreate = () => {
     if (onCreateManual && newTitle.trim()) {
@@ -179,6 +211,13 @@ export function TodoColumn({
               onToggle={() => onToggle(todo.id)}
               onDelete={() => onDelete(todo.id)}
               onUpdate={onUpdate ? (updates) => onUpdate(todo.id, updates) : undefined}
+              isDragging={draggedId === todo.id}
+              isDragOver={dragOverId === todo.id}
+              onDragStart={() => handleDragStart(todo.id)}
+              onDragOver={(e) => handleDragOver(e, todo.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={() => handleDrop(todo.id)}
+              onDragEnd={handleDragEnd}
             />
           ))
         )}

@@ -41,6 +41,11 @@
   --accent-hover: #2563eb;
   --accent-light: rgba(59, 130, 246, 0.15);
 
+  /* AI/Magic accent - violet */
+  --ai-accent: #8b5cf6;
+  --ai-accent-hover: #7c3aed;
+  --ai-accent-light: rgba(139, 92, 246, 0.15);
+
   /* Status */
   --success: #22c55e;
   --pending: #64748b;
@@ -329,7 +334,7 @@ body {
 .issue-card {
   background: var(--bg-card);
   border-radius: var(--radius-md);
-  padding: var(--space-md);
+  padding: 12px;
   border: 1px solid var(--border-light);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -447,7 +452,7 @@ body {
 
 /* Issue summary */
 .issue-summary-container {
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
   cursor: pointer;
   position: relative;
 }
@@ -672,6 +677,49 @@ body {
   color: var(--text-primary);
 }
 
+.btn-ai {
+  background: var(--ai-accent-light);
+  color: var(--ai-accent);
+  border: 1px solid transparent;
+}
+
+.btn-ai:hover {
+  background: var(--ai-accent);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.25);
+}
+
+.btn-ai:active {
+  transform: translateY(0);
+}
+
+.btn-ai:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-link {
+  background: transparent;
+  color: var(--accent);
+  border: none;
+  text-decoration: none;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.btn-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+  background: transparent;
+}
+
+.btn-link::after {
+  content: ' ↗';
+  font-size: 0.75em;
+  opacity: 0.7;
+}
+
 .btn-sm {
   padding: var(--space-xs) var(--space-sm);
   font-size: 0.75rem;
@@ -694,13 +742,34 @@ body {
 }
 
 .todo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
   border-color: var(--border-medium);
-  box-shadow: var(--shadow-sm);
 }
 
 .todo-card.completed {
   opacity: 0.6;
   background: var(--bg-secondary);
+}
+
+.todo-card[draggable="true"] {
+  cursor: grab;
+}
+
+.todo-card[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.todo-card.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+  box-shadow: var(--shadow-lg);
+}
+
+.todo-card.drag-over {
+  border-color: var(--accent);
+  border-style: dashed;
+  background: rgba(59, 130, 246, 0.05);
 }
 
 .todo-header {
@@ -760,6 +829,90 @@ body {
 .todo-assignee {
   margin-left: auto;
   margin-right: var(--space-sm);
+}
+
+/* Assignee selector with dropdown */
+.assignee-selector {
+  position: relative;
+  margin-left: auto;
+  margin-right: var(--space-sm);
+}
+
+.assignee-badge.clickable {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.assignee-badge.clickable:hover {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: var(--accent);
+}
+
+.assignee-badge.clickable.unassigned:hover {
+  background: rgba(100, 116, 139, 0.3);
+}
+
+.assignee-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: var(--space-xs);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 160px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  animation: dropdownFadeIn 0.15s ease;
+}
+
+/* Ensure the card with open dropdown is above other cards */
+.todo-card:has(.assignee-dropdown) {
+  z-index: 10;
+  position: relative;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.assignee-option {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assignee-option:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.assignee-option.selected {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.assignee-option:first-child {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.assignee-option:last-child {
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 .todo-description {
@@ -858,7 +1011,8 @@ body {
 
 .todo-input,
 .todo-textarea,
-.todo-step-input {
+.todo-step-input,
+.todo-select {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
   font-size: 0.875rem;
@@ -871,9 +1025,19 @@ body {
   font-family: var(--font-body);
 }
 
+.todo-select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: var(--space-xl);
+}
+
 .todo-input:focus,
 .todo-textarea:focus,
-.todo-step-input:focus {
+.todo-step-input:focus,
+.todo-select:focus {
   border-color: var(--accent);
   background: var(--bg-secondary);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
@@ -1222,8 +1386,8 @@ body {
    GENERATION SECTION
 ================================ */
 .issue-actions-container {
-  margin-top: var(--space-md);
-  padding-top: var(--space-md);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
   border-top: 1px solid var(--border-light);
 }
 

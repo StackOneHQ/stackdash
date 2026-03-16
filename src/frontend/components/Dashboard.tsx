@@ -17,6 +17,7 @@ interface DashboardProps {
   onTodoUpdate: (id: string, updates: Partial<Todo>) => void;
   onTodoCreateManual: (title: string, description?: string, steps?: string[]) => void;
   onClearCompleted: () => void;
+  onTodoReorder: (draggedId: string, targetId: string) => void;
   onIssueDeleted: (issueId: string) => void;
   pendingTodoCount: number;
   completedTodoCount: number;
@@ -35,6 +36,7 @@ export function Dashboard({
   onTodoUpdate,
   onTodoCreateManual,
   onClearCompleted,
+  onTodoReorder,
   onIssueDeleted,
   pendingTodoCount,
   completedTodoCount,
@@ -90,6 +92,7 @@ export function Dashboard({
         onUpdate={onTodoUpdate}
         onCreateManual={onTodoCreateManual}
         onClearCompleted={onClearCompleted}
+        onReorder={onTodoReorder}
         pendingCount={pendingTodoCount}
         completedCount={completedTodoCount}
       />
