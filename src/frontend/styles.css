@@ -1574,6 +1574,422 @@ body {
 }
 
 /* ================================
+   TOUCH DEVICE SUPPORT
+================================ */
+@media (hover: none), (pointer: coarse) {
+  /* Always show action buttons on touch devices */
+  .issue-delete-btn,
+  .todo-delete,
+  .todo-edit-btn {
+    opacity: 1;
+  }
+
+  /* Show expand hint on touch */
+  .issue-summary-expand {
+    opacity: 0.7;
+  }
+
+  /* Remove hover transforms on touch (prevents sticky hover states) */
+  .issue-card:hover,
+  .todo-card:hover {
+    transform: none;
+  }
+
+  /* Increase touch target sizes */
+  .issue-delete-btn,
+  .todo-delete,
+  .todo-edit-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .todo-checkbox {
+    width: 28px;
+    height: 28px;
+  }
+
+  .todo-checkbox.checked::after {
+    width: 8px;
+    height: 12px;
+  }
+
+  /* Larger dropdown options for touch */
+  .assignee-option {
+    padding: var(--space-md);
+    min-height: 44px;
+  }
+
+  /* Bigger filter select touch target */
+  .assignee-select {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-xl) var(--space-sm) var(--space-md);
+  }
+
+  /* Better button touch targets */
+  .btn {
+    min-height: 44px;
+    padding: var(--space-sm) var(--space-lg);
+  }
+
+  .btn-sm {
+    min-height: 36px;
+  }
+
+  .btn-ghost {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Filter clear button larger */
+  .filter-clear {
+    min-height: 36px;
+    padding: var(--space-sm) var(--space-md);
+  }
+}
+
+/* ================================
+   SMALL MOBILE (480px)
+================================ */
+@media (max-width: 480px) {
+  /* Compact header */
+  .header {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .header h1 {
+    font-size: 1.25rem;
+  }
+
+  .header-controls {
+    width: 100%;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .header-status {
+    order: -1;
+    font-size: 0.75rem;
+  }
+
+  .assignee-filter {
+    width: 100%;
+  }
+
+  .assignee-select {
+    width: 100%;
+  }
+
+  /* Dashboard spacing */
+  .dashboard {
+    padding: var(--space-sm);
+    gap: var(--space-sm);
+  }
+
+  /* Column adjustments - let them expand naturally */
+  .column {
+    max-height: none;
+    min-height: 200px;
+  }
+
+  .column-header {
+    padding: var(--space-md);
+  }
+
+  .column-title {
+    font-size: 1rem;
+  }
+
+  .column-content {
+    padding: var(--space-sm);
+  }
+
+  /* Card spacing */
+  .issue-card,
+  .todo-card {
+    padding: var(--space-sm);
+  }
+
+  .issue-title,
+  .todo-title {
+    font-size: 0.875rem;
+  }
+
+  .issue-summary {
+    font-size: 0.8125rem;
+  }
+
+  /* Priority badge smaller */
+  .priority-badge {
+    font-size: 0.625rem;
+    padding: 2px 6px;
+  }
+
+  /* Meta row stacking on very small screens */
+  .issue-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+
+  .issue-meta-right {
+    width: 100%;
+    justify-content: flex-start;
+    gap: var(--space-sm);
+  }
+
+  /* Filter banner compact */
+  .filter-banner {
+    padding: var(--space-xs) var(--space-md);
+    font-size: 0.75rem;
+  }
+
+  /* Stats column compact */
+  .stats-column {
+    padding: var(--space-md);
+    gap: var(--space-md);
+  }
+
+  .stats-title {
+    font-size: 1rem;
+    padding-bottom: var(--space-sm);
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  /* Todo forms */
+  .todo-add-form,
+  .todo-edit-mode {
+    padding: var(--space-sm);
+  }
+
+  .todo-edit-actions {
+    flex-direction: column;
+  }
+
+  .todo-edit-actions .btn {
+    width: 100%;
+  }
+
+  /* Empty state compact */
+  .empty-state {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .empty-state-icon {
+    font-size: 2rem;
+  }
+
+  .empty-state-text {
+    font-size: 0.8125rem;
+  }
+
+  /* Generated content */
+  .generated-content {
+    padding: var(--space-sm);
+  }
+
+  .generated-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .generated-actions {
+    width: 100%;
+  }
+
+  .generated-actions .btn {
+    flex: 1;
+  }
+}
+
+/* ================================
+   MOBILE COLUMN HEIGHT FIX (768px)
+================================ */
+@media (max-width: 768px) {
+  /* Override restrictive max-height with viewport-based calculation */
+  .column {
+    max-height: calc(100vh - 180px);
+  }
+
+  /* When filter banner is shown, account for it */
+  .filter-banner + .dashboard .column {
+    max-height: calc(100vh - 220px);
+  }
+}
+
+/* ================================
+   DROPDOWN POSITIONING FIX
+================================ */
+.assignee-dropdown {
+  /* Prevent horizontal overflow on small screens */
+  max-width: calc(100vw - 2rem);
+  left: auto;
+  right: 0;
+}
+
+@media (max-width: 480px) {
+  .assignee-dropdown {
+    /* On very small screens, make dropdown full-width relative to card */
+    position: fixed;
+    left: var(--space-sm);
+    right: var(--space-sm);
+    top: auto;
+    bottom: var(--space-lg);
+    max-height: 50vh;
+    border-radius: var(--radius-lg);
+  }
+
+  /* Add backdrop when dropdown is open */
+  .todo-card:has(.assignee-dropdown)::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 999;
+  }
+
+  .assignee-dropdown {
+    z-index: 1001;
+  }
+}
+
+/* ================================
+   MOBILE TYPOGRAPHY
+================================ */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Ensure minimum readable font sizes */
+  .issue-meta,
+  .customer-tier,
+  .assignee-badge,
+  .issue-time {
+    font-size: 0.75rem;
+  }
+
+  .priority-badge {
+    font-size: 0.625rem;
+  }
+
+  /* Slightly larger touch targets for text links */
+  .issue-title a {
+    display: inline-block;
+    padding: 2px 0;
+  }
+}
+
+/* ================================
+   SAFE AREA HANDLING
+================================ */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .dashboard {
+    padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom));
+  }
+
+  @media (max-width: 768px) {
+    .dashboard {
+      padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom));
+    }
+
+    .header {
+      padding-left: calc(var(--space-md) + env(safe-area-inset-left));
+      padding-right: calc(var(--space-md) + env(safe-area-inset-right));
+    }
+  }
+
+  @media (max-width: 480px) {
+    .dashboard {
+      padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom));
+      padding-left: calc(var(--space-sm) + env(safe-area-inset-left));
+      padding-right: calc(var(--space-sm) + env(safe-area-inset-right));
+    }
+
+    .header {
+      padding-left: calc(var(--space-sm) + env(safe-area-inset-left));
+      padding-right: calc(var(--space-sm) + env(safe-area-inset-right));
+    }
+
+    /* Fixed dropdown respects safe areas */
+    .assignee-dropdown {
+      left: calc(var(--space-sm) + env(safe-area-inset-left));
+      right: calc(var(--space-sm) + env(safe-area-inset-right));
+      bottom: calc(var(--space-lg) + env(safe-area-inset-bottom));
+    }
+  }
+}
+
+/* ================================
+   FORM INPUT IMPROVEMENTS
+================================ */
+@media (max-width: 768px) {
+  /* Prevent iOS zoom on input focus (requires min 16px font) */
+  .todo-input,
+  .todo-textarea,
+  .todo-step-input,
+  .todo-select,
+  .generated-textarea,
+  .assignee-select {
+    font-size: 16px;
+  }
+
+  /* Larger padding for finger tapping */
+  .todo-input,
+  .todo-step-input {
+    padding: var(--space-md);
+    min-height: 48px;
+  }
+
+  .todo-textarea,
+  .generated-textarea {
+    padding: var(--space-md);
+    min-height: 80px;
+  }
+
+  .todo-select {
+    min-height: 48px;
+    padding: var(--space-md) var(--space-xl) var(--space-md) var(--space-md);
+  }
+
+  /* Better spacing between form elements */
+  .todo-edit-field {
+    margin-bottom: var(--space-lg);
+  }
+
+  .todo-edit-field label {
+    margin-bottom: var(--space-sm);
+    font-size: 0.8125rem;
+  }
+
+  /* Step inputs touch-friendly */
+  .todo-step-input-row {
+    gap: var(--space-md);
+  }
+
+  .todo-step-remove {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .todo-add-step-btn {
+    min-height: 44px;
+    padding: var(--space-md);
+  }
+}
+
+/* ================================
    PRINT
 ================================ */
 @media print {
