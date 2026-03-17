@@ -4,51 +4,38 @@ import { mcpClient } from '../mcp/client';
 
 const SE_TEAM_NAME = 'SEs';
 
+function formatNameFromEmail(email: string): string {
+  const namePart = email.split('@')[0];
+  return namePart
+    .split('.')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 export function createUsersRoutes() {
   const users = new Hono();
 
-  // GET /api/users - Fetch all users (from cache or MCP)
+  // GET /api/users - Fetch SE team users (from cache or MCP)
   users.get('/', async (c) => {
     // Check if we need to refresh the cache
     const hasUsers = await kvUserStore.hasUsers();
     const isStale = await kvUserStore.isCacheStale();
 
     if (!hasUsers || isStale) {
-      // Fetch both teams (for SE display names) and all users (for complete coverage)
-      const [teamsResult, usersResult] = await Promise.all([
-        mcpClient.listTeams(),
-        mcpClient.listUsers(),
-      ]);
+      // Fetch teams to get SE team members only
+      const teamsResult = await mcpClient.listTeams();
 
-      // Build user map, starting with all users
       const usersMap = new Map<string, { id: string; email: string; name: string }>();
 
-      // First, add all users from listUsers (provides complete coverage)
-      if (!usersResult.isError && usersResult.content) {
-        for (const user of usersResult.content) {
-          if (user.id && user.email) {
-            const namePart = user.email.split('@')[0];
-            const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-            usersMap.set(user.id, {
-              id: user.id,
-              email: user.email,
-              name: user.name || capitalizedName,
-            });
-          }
-        }
-      }
-
-      // Then, override with SE team members (they get priority for display names)
+      // Only include SE team members
       if (!teamsResult.isError && teamsResult.content) {
         const seTeam = teamsResult.content.find(team => team.name === SE_TEAM_NAME);
         if (seTeam) {
           for (const member of seTeam.users) {
-            const namePart = member.email.split('@')[0];
-            const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
             usersMap.set(member.id, {
               id: member.id,
               email: member.email,
-              name: capitalizedName,
+              name: formatNameFromEmail(member.email),
             });
           }
         }
@@ -65,43 +52,20 @@ export function createUsersRoutes() {
 
   // POST /api/users/refresh - Force refresh the users cache
   users.post('/refresh', async (c) => {
-    // Fetch both teams and all users
-    const [teamsResult, usersResult] = await Promise.all([
-      mcpClient.listTeams(),
-      mcpClient.listUsers(),
-    ]);
+    // Fetch teams to get SE team members only
+    const teamsResult = await mcpClient.listTeams();
 
-    // Build user map
     const usersMap = new Map<string, { id: string; email: string; name: string }>();
 
-    // First, add all users from listUsers
-    if (!usersResult.isError && usersResult.content) {
-      for (const user of usersResult.content) {
-        if (user.id && user.email) {
-          const namePart = user.email.split('@')[0];
-          const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-          usersMap.set(user.id, {
-            id: user.id,
-            email: user.email,
-            name: user.name || capitalizedName,
-          });
-        }
-      }
-    }
-
-    // Override with SE team members
-    let seTeamCount = 0;
+    // Only include SE team members
     if (!teamsResult.isError && teamsResult.content) {
       const seTeam = teamsResult.content.find(team => team.name === SE_TEAM_NAME);
       if (seTeam) {
-        seTeamCount = seTeam.users.length;
         for (const member of seTeam.users) {
-          const namePart = member.email.split('@')[0];
-          const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
           usersMap.set(member.id, {
             id: member.id,
             email: member.email,
-            name: capitalizedName,
+            name: formatNameFromEmail(member.email),
           });
         }
       }
@@ -113,14 +77,13 @@ export function createUsersRoutes() {
       return c.json({
         success: true,
         count: usersMap.size,
-        seTeamCount,
         users: allUsers,
       });
     }
 
     return c.json({
       success: false,
-      error: 'No users found from MCP',
+      error: 'No SE team members found from MCP',
     }, 500);
   });
 
