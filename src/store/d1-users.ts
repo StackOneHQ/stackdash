@@ -4,9 +4,24 @@ import { mcpClient } from '../mcp/client';
 // Global D1 reference (set per-request in worker)
 let db: D1Database | null = null;
 
-const SE_TEAM_NAME = 'SEs';
+const SE_TEAM_NAME = 'SEs & PSEs';
 const USERS_CACHE_KEY = 'users_last_updated';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Pylon AI agent - hardcoded since it's not returned by the teams API
+const PYLON_AI_AGENT = {
+  id: '9b76d9de-6c32-4176-9654-b463094e626d',
+  email: 'ai-agent@pylon.com',
+  name: 'Pylon AI',
+};
+
+function formatNameFromEmail(email: string): string {
+  const namePart = email.split('@')[0];
+  return namePart
+    .split('.')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
 
 export function setUsersD1Database(database: D1Database) {
   db = database;
@@ -29,15 +44,22 @@ export const d1UserStore = {
   async setUsers(users: Array<{ id: string; name?: string; email?: string }>): Promise<void> {
     if (!db) return;
 
-    // Use a batch to insert all users
-    const statements = users.map(user =>
-      db!.prepare(`
-        INSERT OR REPLACE INTO users (id, name, email, updated_at)
-        VALUES (?, ?, ?, datetime('now'))
-      `).bind(user.id, user.name || null, user.email || null)
-    );
+    // Clear existing users and insert new ones
+    const statements: D1PreparedStatement[] = [
+      db.prepare(`DELETE FROM users`),
+    ];
 
-    // Also update the metadata timestamp
+    // Insert all users
+    for (const user of users) {
+      statements.push(
+        db.prepare(`
+          INSERT INTO users (id, name, email, updated_at)
+          VALUES (?, ?, ?, datetime('now'))
+        `).bind(user.id, user.name || null, user.email || null)
+      );
+    }
+
+    // Update the metadata timestamp
     statements.push(
       db.prepare(`
         INSERT OR REPLACE INTO metadata (key, value, updated_at)
@@ -101,52 +123,76 @@ export const d1UserStore = {
     return Date.now() - lastUpdated > CACHE_TTL_MS;
   },
 
+  /**
+   * Fetch SE team members from Pylon via MCP and store in D1.
+   * This is the single source of truth for user fetching.
+   * Returns the list of users or an error message.
+   */
+  async fetchAndStoreUsers(): Promise<{ users: Assignee[]; error?: string }> {
+    console.log('[d1UserStore] Fetching SE team members from Pylon...');
+
+    const teamsResult = await mcpClient.listTeams();
+
+    if (teamsResult.isError) {
+      const error = `MCP listTeams failed: ${teamsResult.errorMessage}`;
+      console.error('[d1UserStore]', error);
+      return { users: [], error };
+    }
+
+    if (!teamsResult.content || !Array.isArray(teamsResult.content)) {
+      const error = `MCP listTeams returned invalid content: ${JSON.stringify(teamsResult.content)}`;
+      console.error('[d1UserStore]', error);
+      return { users: [], error };
+    }
+
+    console.log(`[d1UserStore] Found ${teamsResult.content.length} teams:`,
+      teamsResult.content.map(t => t.name).join(', '));
+
+    const seTeam = teamsResult.content.find(team => team.name === SE_TEAM_NAME);
+
+    if (!seTeam) {
+      const error = `SE team "${SE_TEAM_NAME}" not found. Available teams: ${teamsResult.content.map(t => t.name).join(', ')}`;
+      console.error('[d1UserStore]', error);
+      return { users: [], error };
+    }
+
+    console.log(`[d1UserStore] Found SE team with ${seTeam.users?.length || 0} members`);
+
+    const usersMap = new Map<string, { id: string; email: string; name: string }>();
+
+    // Add SE team members
+    for (const member of seTeam.users || []) {
+      if (member.id && member.email) {
+        usersMap.set(member.id, {
+          id: member.id,
+          email: member.email,
+          name: formatNameFromEmail(member.email),
+        });
+      }
+    }
+
+    // Add Pylon AI agent for name lookup
+    usersMap.set(PYLON_AI_AGENT.id, PYLON_AI_AGENT);
+
+    const users = Array.from(usersMap.values());
+    console.log(`[d1UserStore] Storing ${users.length} users in D1`);
+
+    if (users.length > 0) {
+      await this.setUsers(users);
+    }
+
+    return { users };
+  },
+
+  /**
+   * Ensure users are loaded, fetching from MCP if cache is empty or stale.
+   */
   async ensureUsersLoaded(): Promise<void> {
     const hasUsers = await this.hasUsers();
     const isStale = await this.isCacheStale();
 
     if (!hasUsers || isStale) {
-      const [teamsResult, usersResult] = await Promise.all([
-        mcpClient.listTeams(),
-        mcpClient.listUsers(),
-      ]);
-
-      const usersMap = new Map<string, { id: string; email: string; name: string }>();
-
-      // Add all users from listUsers
-      if (!usersResult.isError && usersResult.content) {
-        for (const user of usersResult.content) {
-          if (user.id && user.email) {
-            const namePart = user.email.split('@')[0];
-            const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-            usersMap.set(user.id, {
-              id: user.id,
-              email: user.email,
-              name: user.name || capitalizedName,
-            });
-          }
-        }
-      }
-
-      // Override with SE team members
-      if (!teamsResult.isError && teamsResult.content) {
-        const seTeam = teamsResult.content.find(team => team.name === SE_TEAM_NAME);
-        if (seTeam) {
-          for (const member of seTeam.users) {
-            const namePart = member.email.split('@')[0];
-            const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-            usersMap.set(member.id, {
-              id: member.id,
-              email: member.email,
-              name: capitalizedName,
-            });
-          }
-        }
-      }
-
-      if (usersMap.size > 0) {
-        await this.setUsers(Array.from(usersMap.values()));
-      }
+      await this.fetchAndStoreUsers();
     }
   },
 
