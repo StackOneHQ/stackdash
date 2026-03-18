@@ -152,102 +152,63 @@ export function createWebhookHandler() {
       payload = wrappedPayload.webhook_payload;
     }
 
-    let issue: PylonIssue;
+    // Normalize payload to extract event type and issue ID/data
     let eventType: string;
+    let issueId: string;
+    let issueData: PylonIssue | null = null;
 
-    // Handle new payload format
     if (isNewPayloadFormat(payload)) {
       eventType = payload.event_type;
-
-      // Handle issue reassignment or updates - update existing issue with new data
-      if (eventType === 'issue-reassigned' || eventType === 'issue.updated') {
-        const issueId = payload.client_payload.id;
-        console.log(`Issue ${eventType} webhook received: ${issueId}`);
-        console.log(`Full client_payload: ${JSON.stringify(payload.client_payload)}`);
-
-        // Check if we have this issue
-        const existingIssue = await d1IssueStore.getIssue(issueId);
-        if (!existingIssue) {
-          console.log(`Updated issue not found in store: ${issueId}`);
-          return c.json({ received: true, processed: false, reason: 'issue_not_found' });
-        }
-
-        // Refresh issue data from MCP to get updated assignee
-        await refreshIssueFromMCP(issueId);
-
-        return c.json({ received: true, processed: true, issueId, action: 'refreshed' });
+      issueId = payload.client_payload.id;
+      // For new issues, convert the payload
+      if (eventType === 'new-issue') {
+        issueData = convertNewPayloadToInternal(payload);
       }
-
-      // Only process new-issue events for new issues
-      if (eventType !== 'new-issue') {
-        console.log(`Ignoring event type: ${eventType}`);
-        return c.json({ received: true, processed: false });
-      }
-
-      // Start with basic info from webhook
-      issue = convertNewPayloadToInternal(payload);
-
-      // Check for duplicate
-      if (await d1IssueStore.hasIssue(issue.id)) {
-        console.log(`Duplicate issue ignored: ${issue.id}`);
-        return c.json({ received: true, processed: false, reason: 'duplicate' });
-      }
-
-      console.log(`Webhook received for issue: ${issue.id} - "${issue.title}"`);
-
-      // Add to store as pending
-      await d1IssueStore.addPendingIssue(issue);
-
-      // Enrich and triage (await to ensure it completes before response)
-      await enrichAndTriageIssue(issue.id, issue);
-
-      return c.json({ received: true, processed: true, issueId: issue.id });
-    }
-
-    // Handle legacy payload format
-    if (isLegacyPayloadFormat(payload)) {
+    } else if (isLegacyPayloadFormat(payload)) {
       eventType = payload.event;
-      console.log(`Legacy webhook received: ${eventType}`);
+      issueId = payload.data.id;
+      // For new issues, convert the payload
+      if (eventType === 'issue.created') {
+        issueData = convertLegacyToInternal(payload.data);
+      }
+    } else {
+      console.log(`Unrecognized payload format - keys: ${Object.keys(payload as object).join(', ')}`);
+      return c.json({ error: 'Unrecognized payload format' }, 400);
+    }
 
-      // Handle issue updates (reassignment, etc.) in legacy format
-      if (eventType === 'issue.updated') {
-        const issueId = payload.data.id;
-        console.log(`Legacy issue.updated webhook received: ${issueId}`);
+    console.log(`Webhook received: ${eventType} for issue ${issueId}`);
 
-        const existingIssue = await d1IssueStore.getIssue(issueId);
-        if (!existingIssue) {
-          console.log(`Updated issue not found in store: ${issueId}`);
-          return c.json({ received: true, processed: false, reason: 'issue_not_found' });
-        }
-
-        // Refresh issue data from MCP to get updated assignee
-        await refreshIssueFromMCP(issueId);
-
-        return c.json({ received: true, processed: true, issueId, action: 'refreshed' });
+    // Handle issue updates (reassignment, status changes, etc.)
+    const isUpdateEvent = eventType === 'issue-reassigned' || eventType === 'issue.updated';
+    if (isUpdateEvent) {
+      const existingIssue = await d1IssueStore.getIssue(issueId);
+      if (!existingIssue) {
+        console.log(`Updated issue not found in store: ${issueId}`);
+        return c.json({ received: true, processed: false, reason: 'issue_not_found' });
       }
 
-      if (eventType !== 'issue.created') {
-        console.log(`Ignoring legacy event type: ${eventType}`);
-        return c.json({ received: true, processed: false });
-      }
+      await refreshIssueFromMCP(issueId);
+      return c.json({ received: true, processed: true, issueId, action: 'refreshed' });
+    }
 
-      issue = convertLegacyToInternal(payload.data);
-
-      if (await d1IssueStore.hasIssue(issue.id)) {
-        console.log(`Duplicate issue ignored: ${issue.id}`);
+    // Handle new issue creation
+    const isNewEvent = eventType === 'new-issue' || eventType === 'issue.created';
+    if (isNewEvent && issueData) {
+      if (await d1IssueStore.hasIssue(issueId)) {
+        console.log(`Duplicate issue ignored: ${issueId}`);
         return c.json({ received: true, processed: false, reason: 'duplicate' });
       }
 
-      await d1IssueStore.addPendingIssue(issue);
-      console.log(`Issue received: ${issue.id} - "${issue.title}"`);
+      console.log(`New issue received: ${issueId} - "${issueData.title}"`);
+      await d1IssueStore.addPendingIssue(issueData);
+      await enrichAndTriageIssue(issueId, issueData);
 
-      await enrichAndTriageIssue(issue.id, issue);
-
-      return c.json({ received: true, processed: true, issueId: issue.id });
+      return c.json({ received: true, processed: true, issueId });
     }
 
-    console.log(`Unrecognized payload format - keys: ${Object.keys(payload as object).join(', ')}`);
-    return c.json({ error: 'Unrecognized payload format' }, 400);
+    // Ignore other event types
+    console.log(`Ignoring event type: ${eventType}`);
+    return c.json({ received: true, processed: false });
   };
 }
 
