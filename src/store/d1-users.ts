@@ -5,6 +5,7 @@ import { mcpClient } from '../mcp/client';
 let db: D1Database | null = null;
 
 const SE_TEAM_NAME = 'SEs & PSEs';
+const SECONDARY_TEAM_NAME = 'Secondary Team';
 const USERS_CACHE_KEY = 'users_last_updated';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -149,25 +150,41 @@ export const d1UserStore = {
       teamsResult.content.map(t => t.name).join(', '));
 
     const seTeam = teamsResult.content.find(team => team.name === SE_TEAM_NAME);
+    const secondaryTeam = teamsResult.content.find(team => team.name === SECONDARY_TEAM_NAME);
 
-    if (!seTeam) {
-      const error = `SE team "${SE_TEAM_NAME}" not found. Available teams: ${teamsResult.content.map(t => t.name).join(', ')}`;
+    if (!seTeam && !secondaryTeam) {
+      const error = `No matching teams found. Available teams: ${teamsResult.content.map(t => t.name).join(', ')}`;
       console.error('[d1UserStore]', error);
       return { users: [], error };
     }
 
-    console.log(`[d1UserStore] Found SE team with ${seTeam.users?.length || 0} members`);
-
     const usersMap = new Map<string, { id: string; email: string; name: string }>();
 
     // Add SE team members
-    for (const member of seTeam.users || []) {
-      if (member.id && member.email) {
-        usersMap.set(member.id, {
-          id: member.id,
-          email: member.email,
-          name: formatNameFromEmail(member.email),
-        });
+    if (seTeam) {
+      console.log(`[d1UserStore] Found SE team with ${seTeam.users?.length || 0} members`);
+      for (const member of seTeam.users || []) {
+        if (member.id && member.email) {
+          usersMap.set(member.id, {
+            id: member.id,
+            email: member.email,
+            name: formatNameFromEmail(member.email),
+          });
+        }
+      }
+    }
+
+    // Add Secondary team members (deduplicates automatically via Map)
+    if (secondaryTeam) {
+      console.log(`[d1UserStore] Found Secondary team with ${secondaryTeam.users?.length || 0} members`);
+      for (const member of secondaryTeam.users || []) {
+        if (member.id && member.email && !usersMap.has(member.id)) {
+          usersMap.set(member.id, {
+            id: member.id,
+            email: member.email,
+            name: formatNameFromEmail(member.email),
+          });
+        }
       }
     }
 
