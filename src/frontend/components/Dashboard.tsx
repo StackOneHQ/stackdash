@@ -16,7 +16,7 @@ interface DashboardProps {
   onTodoToggle: (id: string) => void;
   onTodoDelete: (id: string) => void;
   onTodoUpdate: (id: string, updates: Partial<Todo>) => void;
-  onTodoCreateManual: (title: string, description?: string, steps?: string[]) => void;
+  onTodoCreateManual: (title: string, description?: string, steps?: string[], assignee?: { id: string; name?: string; email?: string }) => void;
   onClearCompleted: () => void;
   onTodoReorder: (draggedId: string, targetId: string) => void;
   onIssueDeleted: (issueId: string) => void;

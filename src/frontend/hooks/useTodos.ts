@@ -10,7 +10,7 @@ interface UseTodosReturn {
   toggleTodo: (id: string) => void;
   deleteTodo: (id: string) => void;
   updateTodo: (id: string, updates: Partial<Todo>) => void;
-  createManualTodo: (title: string, description?: string, steps?: string[]) => void;
+  createManualTodo: (title: string, description?: string, steps?: string[], assignee?: { id: string; name?: string; email?: string }) => void;
   clearCompleted: () => void;
   reorderTodos: (draggedId: string, targetId: string) => void;
   getSourceIds: () => string[];
@@ -100,7 +100,7 @@ export function useTodos(): UseTodosReturn {
     );
   }, []);
 
-  const createManualTodo = useCallback((title: string, description?: string, steps?: string[]) => {
+  const createManualTodo = useCallback((title: string, description?: string, steps?: string[], assignee?: { id: string; name?: string; email?: string }) => {
     const newTodo: Todo = {
       id: `manual-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       issueId: 'manual',
@@ -109,6 +109,7 @@ export function useTodos(): UseTodosReturn {
       steps: steps || [],
       createdAt: new Date().toISOString(),
       completed: false,
+      assignee,
     };
     setTodos(prev => [newTodo, ...prev]);
   }, []);

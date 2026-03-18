@@ -9,7 +9,7 @@ interface TodoColumnProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onUpdate?: (id: string, updates: Partial<Todo>) => void;
-  onCreateManual?: (title: string, description?: string, steps?: string[]) => void;
+  onCreateManual?: (title: string, description?: string, steps?: string[], assignee?: { id: string; name?: string; email?: string }) => void;
   onClearCompleted: () => void;
   onReorder: (draggedId: string, targetId: string) => void;
   onImportMeetingActions?: (userEmail: string, userName: string, options: { days?: number; limit?: number }) => Promise<{ added: number; skipped: number; message: string }>;
@@ -74,7 +74,8 @@ export function TodoColumn({
       onCreateManual(
         newTitle.trim(),
         newDescription.trim() || undefined,
-        newSteps.filter(s => s.trim() !== '')
+        newSteps.filter(s => s.trim() !== ''),
+        selectedAssignee || undefined
       );
       resetForm();
     }
