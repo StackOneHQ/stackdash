@@ -17,5 +17,5 @@ migrations_dir = "migrations"
 [assets]
 directory = "./dist"
 binding = "ASSETS"
-html_handling = "auto-trailing-slash"
-not_found_handling = "none"
+html_handling = "none"
+not_found_handling = "single-page-application"

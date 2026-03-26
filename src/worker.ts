@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { basicAuth } from 'hono/basic-auth';
 import { health } from './api/health';
 import { createIssuesRoutes } from './api/issues-kv';
 import { createTodosRoutes } from './api/todos-kv';
@@ -13,6 +12,9 @@ import { setD1Database } from './store/d1-issues';
 import { setUsersD1Database } from './store/d1-users';
 import { setAgentEnv } from './agent';
 import { setVerifyEnv } from './pylon/verify';
+import { setAuthEnv } from './auth/google';
+import { createAuthRoutes } from './auth/routes';
+import { authMiddleware } from './auth/middleware';
 
 type Bindings = {
   ANTHROPIC_API_KEY: string;
@@ -20,7 +22,10 @@ type Bindings = {
   STACKONE_ACCOUNT_ID: string;
   STACKONE_FIREFLIES_ACCOUNT_ID?: string;
   PYLON_WEBHOOK_SECRET?: string;
-  DASHBOARD_PASSWORD?: string;
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  AUTH_REDIRECT_URI: string;
+  COOKIE_SECRET: string;
   DB: D1Database;
   ASSETS?: {
     fetch: (request: Request) => Promise<Response>;
@@ -37,30 +42,32 @@ app.use('*', async (c, next) => {
   setAgentEnv(c.env);
   setVerifyEnv(c.env);
   setMeetingsEnv(c.env);
+  // Only set auth env if all required vars are present
+  if (c.env.GOOGLE_CLIENT_ID && c.env.GOOGLE_CLIENT_SECRET && c.env.AUTH_REDIRECT_URI && c.env.COOKIE_SECRET) {
+    setAuthEnv({
+      GOOGLE_CLIENT_ID: c.env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: c.env.GOOGLE_CLIENT_SECRET,
+      AUTH_REDIRECT_URI: c.env.AUTH_REDIRECT_URI,
+      COOKIE_SECRET: c.env.COOKIE_SECRET,
+    });
+  }
   await next();
 });
 
-// Password protection (skip health check and webhook)
+// Auth routes (public)
+app.route('/auth', createAuthRoutes());
+
+// Google OAuth protection (skip health check, webhook, and auth routes)
 app.use('*', async (c, next) => {
   const path = new URL(c.req.url).pathname;
 
-  // Skip auth for health check and webhook
-  if (path === '/health' || path === '/api/pylon/webhook') {
+  // Skip auth for health check, webhook, and auth routes
+  if (path === '/health' || path === '/api/pylon/webhook' || path.startsWith('/auth')) {
     return next();
   }
 
-  // Skip auth if no password is configured
-  if (!c.env.DASHBOARD_PASSWORD) {
-    return next();
-  }
-
-  // Apply basic auth
-  const auth = basicAuth({
-    username: 'admin',
-    password: c.env.DASHBOARD_PASSWORD,
-  });
-
-  return auth(c, next);
+  // Apply Google OAuth middleware
+  return authMiddleware(c, next);
 });
 
 // Middleware
